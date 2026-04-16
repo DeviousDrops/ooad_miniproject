@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Dashboard · PharmaFlow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">Supplier Dashboard</div>
+        <div class="actions">
+            <a class="btn btn-ghost" href="/">Home</a>
+            <form method="post" action="/logout" style="margin:0;"><button class="btn btn-danger" type="submit">Logout</button></form>
+        </div>
+    </div>
+
+    <section class="panel">
+        <h3>supplyRestock()</h3>
+        <p class="small-note">Default supplierId from seed is usually 1 (first supplier in supplier table), inventoryId is 1.</p>
+        <div class="two-col">
+            <div>
+                <label>Supplier ID</label><input id="supplierId" type="number" value="1">
+                <label>Inventory ID</label><input id="inventoryId" type="number" value="1">
+                <label>Medicine ID</label><input id="medicineId" type="number" value="1">
+            </div>
+            <div>
+                <label>Quantity</label><input id="qty" type="number" value="40">
+                <label>Expected Date</label><input id="expectedDate" type="date">
+                <div class="actions" style="margin-top:12px;"><button class="btn btn-primary" type="button" onclick="restock()">Submit Restock</button></div>
+            </div>
+        </div>
+        <pre id="restockOut" class="output"></pre>
+    </section>
+
+    <section class="two-col">
+        <div class="panel">
+            <h3>shipmentVerification()</h3>
+            <label>Shipment ID</label><input id="shipmentId" type="number" value="1">
+            <div class="actions" style="margin-top:10px;"><button class="btn btn-secondary" type="button" onclick="verifyShipment()">Verify Shipment</button></div>
+            <pre id="verifyOut" class="output"></pre>
+        </div>
+
+        <div class="panel">
+            <h3>submitDigitalInvoice()</h3>
+            <label>Supplier ID</label><input id="invoiceSupplierId" type="number" value="1">
+            <label>Shipment ID</label><input id="invoiceShipmentId" type="number" value="1">
+            <label>Invoice Number</label><input id="invoiceNumber" type="text" value="SUP-INV-001">
+            <label>Amount</label><input id="amount" type="number" step="0.01" value="1250.00">
+            <div class="actions" style="margin-top:10px;"><button class="btn btn-ghost" type="button" onclick="submitInvoice()">Submit Invoice</button></div>
+            <pre id="invoiceOut" class="output"></pre>
+        </div>
+    </section>
+</div>
+
+<script>
+function nextDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+document.getElementById('expectedDate').value = nextDate(7);
+
+async function api(url, method = 'GET', body = null) {
+  const options = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) options.body = JSON.stringify(body);
+  const res = await fetch(url, options);
+  const txt = await res.text();
+  let parsed;
+  try { parsed = JSON.parse(txt); } catch { parsed = txt; }
+  if (!res.ok) throw parsed;
+  return parsed;
+}
+
+async function restock() {
+  try {
+    const payload = {
+      supplierId: Number(document.getElementById('supplierId').value),
+      inventoryId: Number(document.getElementById('inventoryId').value),
+      medicineId: Number(document.getElementById('medicineId').value),
+      quantity: Number(document.getElementById('qty').value),
+      expectedDate: document.getElementById('expectedDate').value
+    };
+    const data = await api('/api/supplier/restock', 'POST', payload);
+    document.getElementById('restockOut').textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    document.getElementById('restockOut').textContent = JSON.stringify(e, null, 2);
+  }
+}
+
+async function verifyShipment() {
+  try {
+    const shipmentId = document.getElementById('shipmentId').value;
+    const data = await api(`/api/supplier/verify-shipment/${shipmentId}`, 'POST');
+    document.getElementById('verifyOut').textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    document.getElementById('verifyOut').textContent = JSON.stringify(e, null, 2);
+  }
+}
+
+async function submitInvoice() {
+  try {
+    const payload = {
+      supplierId: Number(document.getElementById('invoiceSupplierId').value),
+      shipmentId: Number(document.getElementById('invoiceShipmentId').value),
+      invoiceNumber: document.getElementById('invoiceNumber').value,
+      amount: Number(document.getElementById('amount').value)
+    };
+    const data = await api('/api/supplier/digital-invoice', 'POST', payload);
+    document.getElementById('invoiceOut').textContent = JSON.stringify(data, null, 2);
+  } catch (e) {
+    document.getElementById('invoiceOut').textContent = JSON.stringify(e, null, 2);
+  }
+}
+</script>
+</body>
+</html>

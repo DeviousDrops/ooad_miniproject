@@ -1,6 +1,6 @@
 package com.pharmacy.repository;
 
-import com.pharmacy.domain.Order;
+import com.pharmacy.model.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

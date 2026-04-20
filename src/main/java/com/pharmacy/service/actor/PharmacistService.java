@@ -1,8 +1,8 @@
 package com.pharmacy.service.actor;
 
-import com.pharmacy.domain.Bill;
-import com.pharmacy.domain.Inventory;
-import com.pharmacy.domain.Payment;
+import com.pharmacy.model.Bill;
+import com.pharmacy.model.Inventory;
+import com.pharmacy.model.Payment;
 import com.pharmacy.service.billing.BillingService;
 import com.pharmacy.service.inventory.InventoryService;
 import org.springframework.stereotype.Service;

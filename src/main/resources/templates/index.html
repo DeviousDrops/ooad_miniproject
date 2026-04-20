@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Inventory & Billing System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">PharmaFlow · Spring MVC + JPA + Security</div>
+        <div class="actions">
+            <a href="/login" class="btn btn-primary">Login</a>
+            <a href="/swagger-ui/index.html" class="btn btn-ghost">Open API Docs</a>
+            <a href="/h2-console" class="btn btn-secondary">H2 Console</a>
+        </div>
+    </div>
+
+    <section class="hero">
+        <h1>Pharmacy Inventory & Billing System</h1>
+        <p>Role-based portal for Customer, Pharmacist, Admin, and Supplier with low-stock alerts, billing facade, and factory-driven bill creation.</p>
+    </section>
+
+    <section class="grid">
+        <article class="card">
+            <h2>Customer</h2>
+            <p>Search medicines, place orders, view prescriptions, and complete payments.</p>
+            <a class="btn btn-primary" href="/dashboard/customer">Open Customer Dashboard</a>
+        </article>
+
+        <article class="card">
+            <h2>Pharmacist</h2>
+            <p>Verify stock, process billing, and update inventory adjustments.</p>
+            <a class="btn btn-primary" href="/dashboard/pharmacist">Open Pharmacist Dashboard</a>
+        </article>
+
+        <article class="card">
+            <h2>Admin</h2>
+            <p>Manage inventory CRUD, generate reports, and run scheduled supply automation.</p>
+            <a class="btn btn-primary" href="/dashboard/admin">Open Admin Dashboard</a>
+        </article>
+
+        <article class="card">
+            <h2>Supplier</h2>
+            <p>Create restocks, verify shipments, and submit digital invoices.</p>
+            <a class="btn btn-primary" href="/dashboard/supplier">Open Supplier Dashboard</a>
+        </article>
+    </section>
+
+    <section class="panel">
+        <h3>Default Credentials</h3>
+        <p class="small-note">Admin: <strong>admin / admin123</strong></p>
+        <p class="small-note">Pharmacist: <strong>pharmacist / pharma123</strong></p>
+        <p class="small-note">Customer: <strong>customer / customer123</strong></p>
+        <p class="small-note">Supplier: <strong>supplier / supplier123</strong></p>
+    </section>
+</div>
+</body>
+</html>

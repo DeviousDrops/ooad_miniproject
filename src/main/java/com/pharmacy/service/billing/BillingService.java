@@ -1,11 +1,11 @@
 package com.pharmacy.service.billing;
 
-import com.pharmacy.domain.Bill;
-import com.pharmacy.domain.Customer;
-import com.pharmacy.domain.Medicine;
-import com.pharmacy.domain.Order;
-import com.pharmacy.domain.OrderItem;
-import com.pharmacy.domain.Payment;
+import com.pharmacy.model.Bill;
+import com.pharmacy.model.Customer;
+import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Order;
+import com.pharmacy.model.OrderItem;
+import com.pharmacy.model.Payment;
 import com.pharmacy.pattern.decorator.BaseBillAmount;
 import com.pharmacy.pattern.decorator.BillAmountComponent;
 import com.pharmacy.pattern.decorator.DiscountDecorator;

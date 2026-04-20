@@ -1,7 +1,7 @@
 package com.pharmacy.controller.api;
 
-import com.pharmacy.domain.Medicine;
-import com.pharmacy.domain.Report;
+import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Report;
 import com.pharmacy.service.actor.AdminService;
 import com.pharmacy.service.inventory.InventoryService;
 import jakarta.validation.Valid;

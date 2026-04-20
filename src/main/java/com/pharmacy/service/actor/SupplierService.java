@@ -1,7 +1,7 @@
 package com.pharmacy.service.actor;
 
-import com.pharmacy.domain.Invoice;
-import com.pharmacy.domain.Shipment;
+import com.pharmacy.model.Invoice;
+import com.pharmacy.model.Shipment;
 import com.pharmacy.repository.InvoiceRepository;
 import com.pharmacy.repository.ShipmentRepository;
 import com.pharmacy.service.inventory.InventoryService;

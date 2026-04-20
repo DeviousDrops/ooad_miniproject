@@ -1,6 +1,6 @@
 package com.pharmacy.pattern.observer;
 
-import com.pharmacy.domain.Medicine;
+import com.pharmacy.model.Medicine;
 
 public interface InventoryObserver {
 

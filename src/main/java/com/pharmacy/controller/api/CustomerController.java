@@ -1,9 +1,9 @@
 package com.pharmacy.controller.api;
 
-import com.pharmacy.domain.Bill;
-import com.pharmacy.domain.Medicine;
-import com.pharmacy.domain.Order;
-import com.pharmacy.domain.Prescription;
+import com.pharmacy.model.Bill;
+import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Order;
+import com.pharmacy.model.Prescription;
 import com.pharmacy.service.actor.CustomerService;
 import com.pharmacy.service.billing.BillingService;
 import jakarta.validation.Valid;

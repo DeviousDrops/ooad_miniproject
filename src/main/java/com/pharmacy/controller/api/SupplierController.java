@@ -1,7 +1,7 @@
 package com.pharmacy.controller.api;
 
-import com.pharmacy.domain.Invoice;
-import com.pharmacy.domain.Shipment;
+import com.pharmacy.model.Invoice;
+import com.pharmacy.model.Shipment;
 import com.pharmacy.service.actor.SupplierService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;

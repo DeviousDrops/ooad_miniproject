@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="page-shell">
+    <div class="topbar">
+        <div class="brand">Customer Dashboard</div>
+        <div class="actions">
+            <a class="btn btn-ghost" href="/">Home</a>
+            <form method="post" action="/logout">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button class="btn btn-danger" type="submit">Logout</button>
+            </form>
+        </div>
+    </div>
+
+    <section class="panel" th:if="${successMessage}">
+        <p th:text="${successMessage}"></p>
+    </section>
+    <section class="panel" th:if="${infoMessage}">
+        <p th:text="${infoMessage}"></p>
+    </section>
+
+    <section class="panel">
+        <h3>Search Medicines</h3>
+        <form method="get" action="/dashboard/customer" class="two-col">
+            <input type="hidden" name="customerId" th:value="${customerId}">
+            <div>
+                <label for="query">Name or Category</label>
+                <input id="query" name="query" th:value="${query}">
+            </div>
+            <div class="actions" style="align-items:end;">
+                <button class="btn btn-primary" type="submit">Search</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h3>Place Order</h3>
+        <form method="post" action="/customer/order" class="two-col">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div>
+                <label for="customerId">Customer ID</label>
+                <input id="customerId" name="customerId" th:value="${customerId}" type="number" min="1" required>
+                <label for="medicineId">Medicine ID</label>
+                <input id="medicineId" name="medicineId" type="number" min="1" required>
+            </div>
+            <div>
+                <label for="quantity">Quantity</label>
+                <input id="quantity" name="quantity" type="number" min="1" required>
+                <div class="actions" style="margin-top:12px;">
+                    <button class="btn btn-primary" type="submit">Submit Order</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h3>Payment Gateway</h3>
+        <form method="post" action="/customer/payment" class="two-col">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <input type="hidden" name="customerId" th:value="${customerId}">
+            <div>
+                <label for="billId">Bill ID</label>
+                <input id="billId" name="billId" type="number" min="1" required>
+            </div>
+            <div>
+                <label for="paymentMethod">Payment Method</label>
+                <select id="paymentMethod" name="paymentMethod">
+                    <option value="UPI">UPI</option>
+                    <option value="CARD">CARD</option>
+                    <option value="CASH">CASH</option>
+                </select>
+                <div class="actions" style="margin-top:12px;">
+                    <button class="btn btn-secondary" type="submit">Pay</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h3>Medicine List</h3>
+        <div style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                <tr>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Name</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Category</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Price</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Stock</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Expiry</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="medicine : ${medicines}">
+                    <td style="padding:8px;" th:text="${medicine.medicineId}"></td>
+                    <td style="padding:8px;" th:text="${medicine.name}"></td>
+                    <td style="padding:8px;" th:text="${medicine.category}"></td>
+                    <td style="padding:8px;" th:text="${medicine.price}"></td>
+                    <td style="padding:8px;" th:text="${medicine.stockQty}"></td>
+                    <td style="padding:8px;" th:text="${medicine.expiryDate}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>Bill History</h3>
+        <p class="small-note" th:text="'Bills found: ' + ${#lists.size(bills)}"></p>
+    </section>
+
+    <section class="panel">
+        <h3>Prescription History</h3>
+        <p class="small-note" th:text="'Prescriptions found: ' + ${#lists.size(prescriptions)}"></p>
+    </section>
+</div>
+</body>
+</html>

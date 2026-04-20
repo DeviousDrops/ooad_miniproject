@@ -1,9 +1,9 @@
 package com.pharmacy.service.inventory;
 
-import com.pharmacy.domain.Inventory;
-import com.pharmacy.domain.Medicine;
-import com.pharmacy.domain.Shipment;
-import com.pharmacy.domain.Supplier;
+import com.pharmacy.model.Inventory;
+import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Shipment;
+import com.pharmacy.model.Supplier;
 import com.pharmacy.pattern.factory.MedicineFactory;
 import com.pharmacy.pattern.factory.MedicineFactorySelector;
 import com.pharmacy.pattern.observer.AdminAlertObserver;

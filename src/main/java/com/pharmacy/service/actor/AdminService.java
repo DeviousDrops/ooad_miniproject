@@ -1,8 +1,8 @@
 package com.pharmacy.service.actor;
 
-import com.pharmacy.domain.Bill;
-import com.pharmacy.domain.Medicine;
-import com.pharmacy.domain.Report;
+import com.pharmacy.model.Bill;
+import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Report;
 import com.pharmacy.repository.BillRepository;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.repository.ReportRepository;

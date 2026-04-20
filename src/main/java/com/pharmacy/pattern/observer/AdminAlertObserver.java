@@ -1,6 +1,6 @@
 package com.pharmacy.pattern.observer;
 
-import com.pharmacy.domain.Medicine;
+import com.pharmacy.model.Medicine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

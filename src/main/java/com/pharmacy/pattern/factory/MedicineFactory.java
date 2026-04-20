@@ -1,6 +1,6 @@
 package com.pharmacy.pattern.factory;
 
-import com.pharmacy.domain.Medicine;
+import com.pharmacy.model.Medicine;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

@@ -26,13 +26,29 @@ public class CustomerController {
     @GetMapping("/dashboard/customer")
     public String customerDashboard(
             @RequestParam(name = "query", required = false) String query,
-            @RequestParam(name = "customerId", required = false, defaultValue = "1") Long customerId,
+            @RequestParam(name = "customerId", required = false) Long customerId,
             Model model
     ) {
+        Long effectiveCustomerId = customerId == null ? customerService.defaultCustomerReference() : customerId;
+
+        List<Bill> bills;
+        List<com.pharmacy.model.Prescription> prescriptions;
+        try {
+            bills = customerService.viewBillHistory(effectiveCustomerId);
+            prescriptions = customerService.viewPrescriptionHistory(effectiveCustomerId);
+        } catch (IllegalArgumentException ex) {
+            effectiveCustomerId = customerService.defaultCustomerReference();
+            bills = customerService.viewBillHistory(effectiveCustomerId);
+            prescriptions = customerService.viewPrescriptionHistory(effectiveCustomerId);
+            if (!model.containsAttribute("infoMessage")) {
+                model.addAttribute("infoMessage", ex.getMessage());
+            }
+        }
+
         model.addAttribute("medicines", customerService.searchMedicines(query));
-        model.addAttribute("bills", customerService.viewBillHistory(customerId));
-        model.addAttribute("prescriptions", customerService.viewPrescriptionHistory(customerId));
-        model.addAttribute("customerId", customerId);
+        model.addAttribute("bills", bills);
+        model.addAttribute("prescriptions", prescriptions);
+        model.addAttribute("customerId", effectiveCustomerId);
         model.addAttribute("query", query == null ? "" : query);
         return "dashboard/customer";
     }
@@ -44,8 +60,16 @@ public class CustomerController {
             @RequestParam("quantity") Integer quantity,
             RedirectAttributes redirectAttributes
     ) {
-        customerService.placeOrder(customerId, List.of(new CustomerService.OrderRequestItem(medicineId, quantity)));
-        redirectAttributes.addFlashAttribute("successMessage", "Order placed successfully and stock verified.");
+        try {
+            com.pharmacy.model.Order placedOrder = customerService.placeOrder(
+                    customerId,
+                    List.of(new CustomerService.OrderRequestItem(medicineId, quantity))
+            );
+            redirectAttributes.addFlashAttribute("successMessage", "Order placed successfully and stock verified.");
+            redirectAttributes.addFlashAttribute("latestOrderId", placedOrder.getOrderId());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("infoMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/customer?customerId=" + customerId;
     }
 

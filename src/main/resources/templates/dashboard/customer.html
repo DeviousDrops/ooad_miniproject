@@ -25,6 +25,12 @@
     <section class="panel" th:if="${infoMessage}">
         <p th:text="${infoMessage}"></p>
     </section>
+    <section class="panel" th:if="${latestOrderId}">
+        <p>
+            Latest Order ID:
+            <strong th:text="${latestOrderId}"></strong>
+        </p>
+    </section>
 
     <section class="panel">
         <h3>Search Medicines</h3>
@@ -47,8 +53,10 @@
             <div>
                 <label for="customerId">Customer ID</label>
                 <input id="customerId" name="customerId" th:value="${customerId}" type="number" min="1" required>
+                <p class="small-note">Use the prefilled value unless you intentionally want another customer reference.</p>
                 <label for="medicineId">Medicine ID</label>
                 <input id="medicineId" name="medicineId" type="number" min="1" required>
+                <p class="small-note">Pick this from the Medicine List table below (ID column).</p>
             </div>
             <div>
                 <label for="quantity">Quantity</label>
@@ -68,6 +76,7 @@
             <div>
                 <label for="billId">Bill ID</label>
                 <input id="billId" name="billId" type="number" min="1" required>
+                <p class="small-note">Use a Bill ID from the Bill History table below.</p>
             </div>
             <div>
                 <label for="paymentMethod">Payment Method</label>
@@ -114,6 +123,31 @@
     <section class="panel">
         <h3>Bill History</h3>
         <p class="small-note" th:text="'Bills found: ' + ${#lists.size(bills)}"></p>
+        <div style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                <tr>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Bill ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order Status</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Payment Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="bill : ${bills}">
+                    <td style="padding:8px;" th:text="${bill.billId}"></td>
+                    <td style="padding:8px;" th:text="${bill.order != null ? bill.order.orderId : '-'}"></td>
+                    <td style="padding:8px;" th:text="${bill.total}"></td>
+                    <td style="padding:8px;" th:text="${bill.order != null ? bill.order.status : '-'}"></td>
+                    <td style="padding:8px;" th:text="${bill.payment != null ? bill.payment.status : 'UNPAID'}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(bills)}">
+                    <td style="padding:8px;" colspan="5">No bills yet. After pharmacist processes billing, records will appear here.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 
     <section class="panel">

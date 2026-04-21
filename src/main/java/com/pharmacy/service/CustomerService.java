@@ -55,8 +55,7 @@ public class CustomerService {
             throw new IllegalArgumentException("Order requires at least one medicine");
         }
 
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerId));
+        Customer customer = resolveCustomer(customerId);
 
         Order order = new Order();
         order.setCustomer(customer);
@@ -87,7 +86,8 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public List<Prescription> viewPrescriptionHistory(Long customerId) {
-        return prescriptionRepository.findByCustomerUserId(customerId);
+        Customer customer = resolveCustomer(customerId);
+        return prescriptionRepository.findByCustomerUserId(customer.getUserId());
     }
 
     @Transactional
@@ -97,7 +97,26 @@ public class CustomerService {
 
     @Transactional(readOnly = true)
     public List<com.pharmacy.model.Bill> viewBillHistory(Long customerId) {
-        return billingFacade.customerBillHistory(customerId);
+        Customer customer = resolveCustomer(customerId);
+        return billingFacade.customerBillHistory(customer.getUserId());
+    }
+
+    @Transactional(readOnly = true)
+    public Long defaultCustomerReference() {
+        return customerRepository.findAll().stream()
+                .findFirst()
+                .map(customer -> customer.getCustomerId() != null ? customer.getCustomerId() : customer.getUserId())
+                .orElse(1L);
+    }
+
+    private Customer resolveCustomer(Long customerRef) {
+        if (customerRef == null) {
+            throw new IllegalArgumentException("Customer id is required");
+        }
+
+        return customerRepository.findById(customerRef)
+                .or(() -> customerRepository.findByCustomerId(customerRef))
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerRef));
     }
 
     public record OrderRequestItem(Long medicineId, Integer quantity) {

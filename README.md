@@ -6,6 +6,10 @@ A Spring Boot MVC application for pharmacy operations with four role-based actor
 - Customer
 - Supplier
 
+## Design Document
+- Detailed architecture, function flow, design patterns, and team contribution split:
+  - `DESIGN.md`
+
 ## Architecture
 - Pattern: MVC (Model, View, Controller)
 - Backend: Java 17+, Spring Boot, Spring Data JPA

@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
 	Optional<Supplier> findBySupplierId(Long supplierId);
+
+    Optional<Supplier> findFirstByOrderBySupplierIdAsc();
 }

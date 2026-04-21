@@ -8,4 +8,8 @@ import java.util.List;
 public interface BillRepository extends JpaRepository<Bill, Long> {
 
     List<Bill> findByOrderCustomerUserId(Long userId);
+
+    boolean existsByOrderOrderId(Long orderId);
+
+    List<Bill> findAllByOrderByGeneratedAtDesc();
 }

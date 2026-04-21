@@ -1,35 +1,44 @@
 package com.pharmacy.service.actor;
 
 import com.pharmacy.model.Invoice;
+import com.pharmacy.model.InvoiceItem;
+import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Shipment;
 import com.pharmacy.repository.InvoiceRepository;
-import com.pharmacy.repository.ShipmentRepository;
+import com.pharmacy.repository.MedicineRepository;
+import com.pharmacy.repository.SupplierRepository;
+import com.pharmacy.service.BillFactory;
 import com.pharmacy.service.inventory.InventoryService;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.Objects;
+import java.util.List;
 
 @Service
 @Transactional
 public class SupplierService {
 
     private final InventoryService inventoryService;
-    private final ShipmentRepository shipmentRepository;
     private final InvoiceRepository invoiceRepository;
+    private final MedicineRepository medicineRepository;
+    private final SupplierRepository supplierRepository;
+    private final BillFactory billFactory;
 
     public SupplierService(
             InventoryService inventoryService,
-            ShipmentRepository shipmentRepository,
-            InvoiceRepository invoiceRepository
+            InvoiceRepository invoiceRepository,
+            MedicineRepository medicineRepository,
+            SupplierRepository supplierRepository,
+            BillFactory billFactory
     ) {
         this.inventoryService = inventoryService;
-        this.shipmentRepository = shipmentRepository;
         this.invoiceRepository = invoiceRepository;
+        this.medicineRepository = medicineRepository;
+        this.supplierRepository = supplierRepository;
+        this.billFactory = billFactory;
     }
 
     public Shipment supplyRestock(
@@ -50,24 +59,40 @@ public class SupplierService {
         );
     }
 
-    public Shipment shipmentVerification(Long shipmentId) {
-        return inventoryService.shipmentVerification(shipmentId);
-    }
-
-    public Invoice submitDigitalInvoice(Long supplierId, Long shipmentId, String invoiceNumber, BigDecimal amount) {
-        Long safeShipmentId = Objects.requireNonNull(shipmentId, "shipmentId is required");
-        Shipment shipment = shipmentRepository.findById(safeShipmentId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found"));
-
-        if (!shipment.getSupplier().getUserId().equals(supplierId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Supplier does not own this shipment");
+    public Invoice generateSupplierBill(Long supplierId, List<Long> medicineIds, List<Integer> quantities) {
+        if (supplierId == null) {
+            throw new IllegalArgumentException("supplierId is required");
+        }
+        if (medicineIds == null || quantities == null || medicineIds.isEmpty() || medicineIds.size() != quantities.size()) {
+            throw new IllegalArgumentException("At least one medicine line is required");
         }
 
-        Invoice invoice = new Invoice();
-        invoice.setSupplier(shipment.getSupplier());
-        invoice.setShipment(shipment);
-        invoice.setInvoiceNumber(invoiceNumber);
-        invoice.setAmount(amount);
+        var supplier = supplierRepository.findBySupplierId(supplierId)
+                .or(() -> supplierRepository.findFirstByOrderBySupplierIdAsc())
+                .orElseThrow(() -> new IllegalArgumentException("Supplier not found"));
+
+        Invoice invoice = billFactory.createInvoice(supplier, BigDecimal.ZERO);
+        invoice.setPaymentStatus(Invoice.PaymentStatus.PENDING);
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 0; i < medicineIds.size(); i++) {
+            Medicine medicine = medicineRepository.findById(medicineIds.get(i))
+                    .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineIds.get(i)));
+            Integer quantity = quantities.get(i);
+            if (quantity == null || quantity < 1) {
+                throw new IllegalArgumentException("Quantity must be at least 1");
+            }
+
+            InvoiceItem item = new InvoiceItem();
+            item.setMedicine(medicine);
+            item.setQuantity(quantity);
+            item.setUnitPrice(medicine.getPrice());
+            invoice.addItem(item);
+
+            total = total.add(medicine.getPrice().multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP));
+        }
+
+        invoice.setAmount(total.setScale(2, RoundingMode.HALF_UP));
         return invoiceRepository.save(invoice);
     }
 }

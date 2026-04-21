@@ -3,27 +3,38 @@ package com.pharmacy.service;
 import com.pharmacy.model.Bill;
 import com.pharmacy.model.Customer;
 import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Order;
+import com.pharmacy.repository.BillRepository;
 import com.pharmacy.repository.CustomerRepository;
 import com.pharmacy.repository.MedicineRepository;
+import com.pharmacy.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service("portalPharmacistService")
 public class PharmacistService {
 
     private final MedicineRepository medicineRepository;
     private final CustomerRepository customerRepository;
+    private final BillRepository billRepository;
+    private final OrderRepository orderRepository;
     private final BillingFacade billingFacade;
     private final InventoryObserver inventoryObserver;
 
     public PharmacistService(
             MedicineRepository medicineRepository,
             CustomerRepository customerRepository,
+            BillRepository billRepository,
+            OrderRepository orderRepository,
             BillingFacade billingFacade,
             InventoryObserver inventoryObserver
     ) {
         this.medicineRepository = medicineRepository;
         this.customerRepository = customerRepository;
+        this.billRepository = billRepository;
+        this.orderRepository = orderRepository;
         this.billingFacade = billingFacade;
         this.inventoryObserver = inventoryObserver;
     }
@@ -38,6 +49,16 @@ public class PharmacistService {
     @Transactional
     public Bill processCustomerBilling(long orderId) {
         return billingFacade.processCustomerBilling(orderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Order> findUnprocessedOrders() {
+        return orderRepository.findByStatusOrderByOrderedAtAsc(Order.OrderStatus.CREATED);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Bill> findProcessedBills() {
+        return billRepository.findAllByOrderByGeneratedAtDesc();
     }
 
     @Transactional(readOnly = true)

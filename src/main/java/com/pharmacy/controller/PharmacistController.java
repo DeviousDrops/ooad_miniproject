@@ -3,6 +3,8 @@ package com.pharmacy.controller;
 import com.pharmacy.model.Bill;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.service.PharmacistService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +17,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @PreAuthorize("hasRole('PHARMACIST')")
 public class PharmacistController {
 
+    private static final Logger logger = LoggerFactory.getLogger(PharmacistController.class);
+
     private final PharmacistService pharmacistService;
     private final MedicineRepository medicineRepository;
 
@@ -26,6 +30,8 @@ public class PharmacistController {
     @GetMapping("/dashboard/pharmacist")
     public String pharmacistDashboard(Model model) {
         model.addAttribute("medicines", medicineRepository.findAll());
+        model.addAttribute("unprocessedOrders", pharmacistService.findUnprocessedOrders());
+        model.addAttribute("processedBills", pharmacistService.findProcessedBills());
         return "dashboard/pharmacist";
     }
 
@@ -46,8 +52,15 @@ public class PharmacistController {
             @RequestParam("orderId") Long orderId,
             RedirectAttributes redirectAttributes
     ) {
-        Bill bill = pharmacistService.processCustomerBilling(orderId);
-        redirectAttributes.addFlashAttribute("successMessage", "Billing completed. Bill ID: " + bill.getBillId());
+        try {
+            Bill bill = pharmacistService.processCustomerBilling(orderId);
+            redirectAttributes.addFlashAttribute("successMessage", "Billing completed. Bill ID: " + bill.getBillId());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            logger.error("Unexpected billing failure for orderId={}", orderId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage", "Unexpected billing error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+        }
         return "redirect:/dashboard/pharmacist";
     }
 

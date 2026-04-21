@@ -1,6 +1,7 @@
 package com.pharmacy.service;
 
 import com.pharmacy.model.Invoice;
+import com.pharmacy.model.InvoiceItem;
 import com.pharmacy.model.Inventory;
 import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Shipment;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -48,67 +50,111 @@ public class SupplierService {
     }
 
     @Transactional
-    public Shipment supplyRestock(Long supplierId, Long medicineId, Integer qty, LocalDate expectedDate) {
+    public Invoice generateSupplierBill(Long supplierId, List<Long> medicineIds, List<Integer> quantities, LocalDate expectedDate) {
         if (supplierId == null) {
             throw new IllegalArgumentException("Supplier ID is required");
         }
-        if (medicineId == null) {
-            throw new IllegalArgumentException("Medicine ID is required");
-        }
-        if (qty == null || qty < 1) {
-            throw new IllegalArgumentException("Quantity must be at least 1");
+        if (medicineIds == null || quantities == null || medicineIds.isEmpty() || medicineIds.size() != quantities.size()) {
+            throw new IllegalArgumentException("At least one medicine with quantity is required");
         }
 
         Supplier supplier = supplierRepository.findById(supplierId)
                 .or(() -> supplierRepository.findBySupplierId(supplierId))
                 .orElseThrow(() -> new IllegalArgumentException("Supplier not found for ID: " + supplierId));
-
-        Medicine medicine = medicineRepository.findById(medicineId)
-                .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineId));
-
         Inventory inventory = inventoryRepository.findAll().stream().findFirst()
                 .orElseGet(() -> inventoryRepository.save(new Inventory()));
 
-        Shipment shipment = new Shipment();
-        shipment.setSupplier(supplier);
-        shipment.setMedicine(medicine);
-        shipment.setInventory(inventory);
-        shipment.setQuantity(qty);
-        shipment.setExpectedDate(expectedDate == null ? LocalDate.now().plusDays(2) : expectedDate);
-        shipment.setStatus(Shipment.ShipmentStatus.PENDING);
-        return shipmentRepository.save(shipment);
-    }
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        Invoice invoice = billFactory.createInvoice(supplier, BigDecimal.ZERO);
+        invoice.setPaymentStatus(Invoice.PaymentStatus.PENDING);
+        invoice = invoiceRepository.save(invoice);
 
-    @Transactional
-    public boolean shipmentVerification(Long shipmentId) {
-        Shipment shipment = shipmentRepository.findById(shipmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Shipment not found: " + shipmentId));
+        for (int i = 0; i < medicineIds.size(); i++) {
+            Long medicineId = medicineIds.get(i);
+            Integer quantity = quantities.get(i);
+            if (medicineId == null) {
+                throw new IllegalArgumentException("Medicine selection is required for each bill line");
+            }
+            if (quantity == null || quantity < 1) {
+                throw new IllegalArgumentException("Quantity must be at least 1 for each bill line");
+            }
 
-        boolean verified = shipment.verifyShipment();
-        shipmentRepository.save(shipment);
-        return verified;
-    }
+            Medicine medicine = medicineRepository.findById(medicineId)
+                    .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineId));
 
-    @Transactional
-    public Invoice submitDigitalInvoice(Long shipmentId, BigDecimal amount) {
-        Shipment shipment = shipmentRepository.findById(shipmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Shipment not found: " + shipmentId));
+            InvoiceItem item = new InvoiceItem();
+            item.setMedicine(medicine);
+            item.setQuantity(quantity);
+            item.setUnitPrice(medicine.getPrice());
+            invoice.addItem(item);
 
-        if (shipment.getStatus() != Shipment.ShipmentStatus.VERIFIED) {
-            throw new IllegalStateException("Shipment must be verified before invoice submission");
+            Shipment shipment = new Shipment();
+            shipment.setSupplier(supplier);
+            shipment.setInventory(inventory);
+            shipment.setInvoice(invoice);
+            shipment.setMedicine(medicine);
+            shipment.setQuantity(quantity);
+            shipment.setExpectedDate(expectedDate == null ? LocalDate.now().plusDays(2) : expectedDate);
+            shipment.setStatus(Shipment.ShipmentStatus.IN_TRANSIT);
+            shipmentRepository.save(shipment);
+
+            totalAmount = totalAmount.add(
+                    medicine.getPrice().multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP)
+            );
         }
 
-        BigDecimal finalAmount = amount == null ? BigDecimal.ZERO : amount;
-        Invoice invoice = billFactory.createInvoice(shipment.getSupplier(), shipment, finalAmount);
-        Invoice saved = invoiceRepository.save(invoice);
-
-        // Include relation from supplier flow to admin inventory update use case.
-        adminService.updateMedicineInventory(shipment.getMedicine().getMedicineId(), shipment.getQuantity());
-        return saved;
+        invoice.setAmount(totalAmount.setScale(2, RoundingMode.HALF_UP));
+        return invoiceRepository.save(invoice);
     }
 
     @Transactional(readOnly = true)
     public List<Shipment> listShipments() {
-        return shipmentRepository.findAll();
+        return shipmentRepository.findAllByOrderByExpectedDateAsc();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Medicine> listMedicines() {
+        return medicineRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Invoice> listInvoices() {
+        return invoiceRepository.findAllByOrderBySubmittedAtDesc();
+    }
+
+    @Transactional(readOnly = true)
+    public Long defaultSupplierId() {
+        return supplierRepository.findBySupplierId(7001L)
+                .map(Supplier::getSupplierId)
+                .or(() -> supplierRepository.findFirstByOrderBySupplierIdAsc().map(Supplier::getSupplierId))
+                .orElse(7001L);
+    }
+
+    @Transactional
+    public Shipment updateShipmentStatus(Long shipmentId, Shipment.ShipmentStatus status) {
+        if (shipmentId == null) {
+            throw new IllegalArgumentException("Shipment ID is required");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Delivery status is required");
+        }
+
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Shipment not found: " + shipmentId));
+
+        Shipment.ShipmentStatus previousStatus = shipment.getStatus();
+        if (previousStatus == Shipment.ShipmentStatus.DELIVERED && status == Shipment.ShipmentStatus.IN_TRANSIT) {
+            throw new IllegalStateException("Delivered orders cannot be moved back to in transit.");
+        }
+        shipment.setStatus(status);
+        if (status == Shipment.ShipmentStatus.DELIVERED) {
+            shipment.setDeliveredAt(java.time.LocalDateTime.now());
+            if (previousStatus != Shipment.ShipmentStatus.DELIVERED) {
+                adminService.updateMedicineInventory(shipment.getMedicine().getMedicineId(), shipment.getQuantity());
+            }
+        } else {
+            shipment.setDeliveredAt(null);
+        }
+        return shipmentRepository.save(shipment);
     }
 }

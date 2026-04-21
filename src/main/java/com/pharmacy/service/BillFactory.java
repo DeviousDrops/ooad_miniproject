@@ -31,11 +31,9 @@ public class BillFactory {
         return bill;
     }
 
-    // Factory Pattern: the same factory can construct supplier invoices consistently.
-    public Invoice createInvoice(Supplier supplier, Shipment shipment, BigDecimal amount) {
+    public Invoice createInvoice(Supplier supplier, BigDecimal amount) {
         Invoice invoice = new Invoice();
         invoice.setSupplier(supplier);
-        invoice.setShipment(shipment);
         invoice.setAmount(amount);
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         invoice.setInvoiceDate(LocalDateTime.now());

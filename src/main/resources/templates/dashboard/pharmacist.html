@@ -25,6 +25,9 @@
     <section class="panel" th:if="${infoMessage}">
         <p th:text="${infoMessage}"></p>
     </section>
+    <section class="panel" th:if="${errorMessage}" style="background-color: #fee; border-left: 4px solid #c33;">
+        <p style="color: #c33;" th:text="${errorMessage}"></p>
+    </section>
 
     <section class="panel two-col">
         <div>
@@ -73,6 +76,64 @@
     <section class="panel">
         <h3>Current Medicines</h3>
         <p class="small-note" th:text="'Total medicines: ' + ${#lists.size(medicines)}"></p>
+    </section>
+
+    <section class="panel">
+        <h3>Unprocessed Orders</h3>
+        <p class="small-note" th:text="'Pending orders: ' + ${#lists.size(unprocessedOrders)}"></p>
+        <div style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                <tr>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Ordered At</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total Amount</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="order : ${unprocessedOrders}">
+                    <td style="padding:8px;" th:text="${order.orderId}"></td>
+                    <td style="padding:8px;" th:text="${order.orderedAt}"></td>
+                    <td style="padding:8px;" th:text="${order.totalAmount}"></td>
+                    <td style="padding:8px;" th:text="${order.status}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(unprocessedOrders)}">
+                    <td style="padding:8px;" colspan="4">No unprocessed orders available.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>Processed Bills</h3>
+        <p class="small-note" th:text="'Processed bills: ' + ${#lists.size(processedBills)}"></p>
+        <div style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                <tr>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Bill ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Generated At</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Payment Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="bill : ${processedBills}">
+                    <td style="padding:8px;" th:text="${bill.billId}"></td>
+                    <td style="padding:8px;" th:text="${bill.order != null ? bill.order.orderId : '-'}"></td>
+                    <td style="padding:8px;" th:text="${bill.total}"></td>
+                    <td style="padding:8px;" th:text="${bill.generatedAt}"></td>
+                    <td style="padding:8px;" th:text="${bill.payment != null ? bill.payment.status : 'UNPAID'}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(processedBills)}">
+                    <td style="padding:8px;" colspan="5">No processed bills yet.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </section>
 </div>
 </body>

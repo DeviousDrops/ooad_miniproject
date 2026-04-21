@@ -34,7 +34,7 @@ public class InventoryObserver {
         if (medicine == null || medicine.getStockQty() == null) {
             return;
         }
-        if (medicine.getStockQty() < LOW_STOCK_THRESHOLD) {
+        if (medicine.getStockQty() <= LOW_STOCK_THRESHOLD) {
             String message = "Low stock alert for " + medicine.getName() + " (qty=" + medicine.getStockQty() + ") at " + LocalDateTime.now();
             alertLog.add(0, message);
             for (StockAlertListener listener : listeners) {

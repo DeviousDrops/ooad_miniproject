@@ -134,7 +134,7 @@ public class InventoryService {
         shipment.setMedicine(medicine);
         shipment.setQuantity(command.quantity());
         shipment.setExpectedDate(command.expectedDate());
-        shipment.setStatus(Shipment.ShipmentStatus.PENDING);
+        shipment.setStatus(Shipment.ShipmentStatus.IN_TRANSIT);
 
         return shipmentRepository.save(shipment);
     }
@@ -144,12 +144,12 @@ public class InventoryService {
         Shipment shipment = shipmentRepository.findById(safeShipmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found"));
 
-        if (shipment.getStatus() == Shipment.ShipmentStatus.VERIFIED) {
+        if (shipment.getStatus() == Shipment.ShipmentStatus.DELIVERED) {
             return shipment;
         }
 
-        shipment.setStatus(Shipment.ShipmentStatus.VERIFIED);
-        shipment.setVerifiedAt(LocalDateTime.now());
+        shipment.setStatus(Shipment.ShipmentStatus.DELIVERED);
+        shipment.setDeliveredAt(LocalDateTime.now());
 
         Medicine medicine = shipment.getMedicine();
         medicine.increaseStock(shipment.getQuantity());

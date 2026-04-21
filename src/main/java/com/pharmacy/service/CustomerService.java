@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 @Service("portalCustomerService")
@@ -47,6 +48,39 @@ public class CustomerService {
             return medicineRepository.findAll();
         }
         return medicineRepository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase(keyword, keyword);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Medicine> searchMedicines(String searchBy, String selectedValue) {
+        if (selectedValue == null || selectedValue.isBlank()) {
+            return medicineRepository.findAll();
+        }
+
+        if ("CATEGORY".equalsIgnoreCase(searchBy)) {
+            return medicineRepository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase("", selectedValue);
+        }
+
+        return medicineRepository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase(selectedValue, "");
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> availableMedicineNames() {
+        return medicineRepository.findAll().stream()
+                .map(Medicine::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> availableMedicineCategories() {
+        return medicineRepository.findAll().stream()
+                .map(Medicine::getCategory)
+                .filter(category -> category != null && !category.isBlank())
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
     }
 
     @Transactional

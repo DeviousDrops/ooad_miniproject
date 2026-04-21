@@ -160,6 +160,7 @@
         </div>
     </section>
 </div>
+<script src="/js/form-validation.js"></script>
 <script th:inline="javascript">
     (() => {
         const addItemBtn = document.getElementById('addBillItemBtn');
@@ -170,6 +171,32 @@
         const emptyRow = document.getElementById('emptyBillRow');
         const supplierBillForm = document.getElementById('supplierBillForm');
         const selectedItems = [];
+
+        const ensureWarningBox = () => {
+            let warningBox = supplierBillForm.querySelector('.supplier-form-warning');
+            if (!warningBox) {
+                warningBox = document.createElement('div');
+                warningBox.className = 'supplier-form-warning';
+                warningBox.style.display = 'none';
+                warningBox.style.margin = '10px 0';
+                warningBox.style.padding = '8px 10px';
+                warningBox.style.borderLeft = '4px solid #c33';
+                warningBox.style.backgroundColor = '#fee';
+                warningBox.style.color = '#900';
+                supplierBillForm.insertBefore(warningBox, supplierBillForm.firstChild.nextSibling || supplierBillForm.firstChild);
+            }
+            return warningBox;
+        };
+
+        const warningBox = ensureWarningBox();
+        const showWarning = (message) => {
+            warningBox.textContent = message;
+            warningBox.style.display = 'block';
+        };
+        const clearWarning = () => {
+            warningBox.textContent = '';
+            warningBox.style.display = 'none';
+        };
 
         if (!addItemBtn || !medicineSelect || !quantityInput || !currentBillBody || !hiddenInputs || !supplierBillForm) {
             return;
@@ -216,8 +243,11 @@
             const quantity = quantityInput.value;
 
             if (!medicineId || !quantity || Number(quantity) < 1) {
+                showWarning('Please select a valid medicine and enter quantity at least 1.');
                 return;
             }
+
+            clearWarning();
 
             selectedItems.push({
                 id: medicineId,
@@ -247,6 +277,7 @@
         supplierBillForm.addEventListener('submit', (event) => {
             if (selectedItems.length === 0) {
                 event.preventDefault();
+                showWarning('Add at least one medicine before generating a bill.');
             }
         });
 

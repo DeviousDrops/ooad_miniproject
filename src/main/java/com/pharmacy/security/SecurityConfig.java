@@ -1,19 +1,18 @@
 package com.pharmacy.security;
 
+import com.pharmacy.repository.CustomerRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
@@ -53,8 +52,7 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
-                )
-                .httpBasic(Customizer.withDefaults());
+                );
 
         return http.build();
     }
@@ -93,29 +91,46 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails admin = User.withUsername("admin")
+        public UserDetailsService userDetailsService(CustomerRepository customerRepository) {
+        return username -> {
+            String normalizedUsername = username == null ? "" : username.trim();
+
+            if ("admin".equals(normalizedUsername)) {
+            return User.withUsername("admin")
                 .password("{noop}admin123")
                 .roles("ADMIN")
                 .build();
+            }
 
-        UserDetails pharmacist = User.withUsername("pharmacist")
+            if ("pharmacist".equals(normalizedUsername)) {
+            return User.withUsername("pharmacist")
                 .password("{noop}pharma123")
                 .roles("PHARMACIST")
                 .build();
+            }
 
-        UserDetails supplier = User.withUsername("supplier")
+            if ("supplier".equals(normalizedUsername)) {
+            return User.withUsername("supplier")
                 .password("{noop}supplier123")
                 .roles("SUPPLIER")
                 .build();
+            }
 
-        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager(admin, pharmacist, supplier);
-        for (String phone : new String[]{"9876543210", "9876543211", "9876543212", "9876543213", "9876543214", "9876543215", "9876543216"}) {
-            manager.createUser(User.withUsername(phone)
-                    .password("{noop}customer123")
-                    .roles("CUSTOMER")
-                    .build());
-        }
-        return manager;
+            return customerRepository.findByPhone(normalizedUsername)
+                    .map(customer -> User.withUsername(customer.getPhone())
+                            .password(customer.getPassword() != null && customer.getPassword().startsWith("{")
+                                    ? customer.getPassword()
+                                    : "{noop}" + customer.getPassword())
+                            .roles("CUSTOMER")
+                            .build())
+                    .or(() -> customerRepository.findFirstByNameIgnoreCase(normalizedUsername)
+                        .map(customer -> User.withUsername(customer.getPhone())
+                            .password(customer.getPassword() != null && customer.getPassword().startsWith("{")
+                                ? customer.getPassword()
+                                : "{noop}" + customer.getPassword())
+                            .roles("CUSTOMER")
+                            .build()))
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalizedUsername));
+        };
     }
 }

@@ -27,7 +27,8 @@ public class CustomerController {
 
     @GetMapping("/dashboard/customer")
     public String customerDashboard(
-            @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "searchBy", required = false, defaultValue = "NAME") String searchBy,
+            @RequestParam(name = "selectedValue", required = false) String selectedValue,
             Authentication authentication,
             Model model
     ) {
@@ -35,34 +36,45 @@ public class CustomerController {
 
         List<Order> orders = customerService.viewOrderHistory(customerPhone);
         List<Bill> bills = customerService.viewBillHistory(customerPhone);
-        List<com.pharmacy.model.Prescription> prescriptions = customerService.viewPrescriptionHistory(customerPhone);
 
-        model.addAttribute("medicines", customerService.searchMedicines(query));
+        model.addAttribute("medicines", customerService.searchMedicines(searchBy, selectedValue));
+        model.addAttribute("medicineNames", customerService.availableMedicineNames());
+        model.addAttribute("medicineCategories", customerService.availableMedicineCategories());
         model.addAttribute("orders", orders);
         model.addAttribute("bills", bills);
-        model.addAttribute("prescriptions", prescriptions);
         model.addAttribute("customerPhone", customerPhone);
-        model.addAttribute("query", query == null ? "" : query);
+        model.addAttribute("searchBy", searchBy);
+        model.addAttribute("selectedValue", selectedValue == null ? "" : selectedValue);
         return "dashboard/customer";
     }
 
     @PostMapping("/customer/order")
     public String placeOrder(
-            @RequestParam("medicineId") Long medicineId,
-            @RequestParam("quantity") Integer quantity,
+            @RequestParam("medicineId") List<Long> medicineIds,
+            @RequestParam("quantity") List<Integer> quantities,
             Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
         String customerPhone = currentCustomerPhone(authentication);
         try {
+            if (medicineIds.size() != quantities.size()) {
+                throw new IllegalArgumentException("Each selected medicine must have a quantity.");
+            }
+
+            List<CustomerService.OrderRequestItem> items = java.util.stream.IntStream.range(0, medicineIds.size())
+                    .mapToObj(index -> new CustomerService.OrderRequestItem(medicineIds.get(index), quantities.get(index)))
+                    .toList();
+
             Order placedOrder = customerService.placeOrder(
                     customerPhone,
-                    List.of(new CustomerService.OrderRequestItem(medicineId, quantity))
+                    items
             );
             redirectAttributes.addFlashAttribute("successMessage", "Order placed successfully and stock verified.");
             redirectAttributes.addFlashAttribute("latestOrderId", placedOrder.getOrderId());
         } catch (IllegalArgumentException | IllegalStateException ex) {
-            redirectAttributes.addFlashAttribute("infoMessage", ex.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to place order. Please verify medicine ID and quantity values.");
         }
         return "redirect:/dashboard/customer";
     }
@@ -74,16 +86,26 @@ public class CustomerController {
             Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
-        customerService.makePayment(billId, paymentMethod);
-        redirectAttributes.addFlashAttribute("successMessage", "Payment processed successfully.");
+        try {
+            customerService.makePayment(billId, paymentMethod);
+            redirectAttributes.addFlashAttribute("successMessage", "Payment processed successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to process payment. Please verify bill ID and try again.");
+        }
         return "redirect:/dashboard/customer";
     }
 
     @PostMapping("/customer/bill-history")
     public String showBills(Authentication authentication, RedirectAttributes redirectAttributes) {
         String customerPhone = currentCustomerPhone(authentication);
-        List<Bill> bills = customerService.viewBillHistory(customerPhone);
-        redirectAttributes.addFlashAttribute("infoMessage", "Loaded " + bills.size() + " bill record(s).");
+        try {
+            List<Bill> bills = customerService.viewBillHistory(customerPhone);
+            redirectAttributes.addFlashAttribute("infoMessage", "Loaded " + bills.size() + " bill record(s).");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/customer";
     }
 

@@ -2,10 +2,6 @@ package com.pharmacy.controller;
 
 import com.pharmacy.model.Customer;
 import com.pharmacy.repository.CustomerRepository;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,11 +11,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class RegistrationController {
 
     private final CustomerRepository customerRepository;
-    private final UserDetailsService userDetailsService;
 
-    public RegistrationController(CustomerRepository customerRepository, UserDetailsService userDetailsService) {
+    public RegistrationController(CustomerRepository customerRepository) {
         this.customerRepository = customerRepository;
-        this.userDetailsService = userDetailsService;
     }
 
     @PostMapping("/register")
@@ -29,38 +23,50 @@ public class RegistrationController {
             @RequestParam("password") String password,
             RedirectAttributes redirectAttributes
     ) {
-        if (phone == null || !phone.matches("\\d{10}")) {
+        String safeName = fullName == null ? "" : fullName.trim();
+        String safePhone = phone == null ? "" : phone.trim();
+        String safePassword = password == null ? "" : password;
+
+        if (safeName.isBlank()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Full name is required.");
+            return "redirect:/login?tab=signup";
+        }
+
+        if (!safePhone.matches("\\d{10}")) {
             redirectAttributes.addFlashAttribute("errorMessage", "Phone number must be exactly 10 digits.");
-            return "redirect:/login";
+            return "redirect:/login?tab=signup";
+        }
+
+        if (customerRepository.findFirstByNameIgnoreCase(safeName).isPresent()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Username is already taken. Please use a different full name.");
+            return "redirect:/login?tab=signup";
+        }
+
+        if (safePassword.length() < 6) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Password must be at least 6 characters.");
+            return "redirect:/login?tab=signup";
+        }
+
+        if (customerRepository.findByPhone(safePhone).isPresent()) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Phone number is already registered.");
+            return "redirect:/login?tab=signup";
         }
 
         try {
-            // 1. Add the new Customer to Spring Security's In-Memory Manager so they can immediately login
-            if (userDetailsService instanceof InMemoryUserDetailsManager manager) {
-                if (manager.userExists(phone)) {
-                    redirectAttributes.addFlashAttribute("errorMessage", "Phone number is already registered.");
-                    return "redirect:/login";
-                }
-                UserDetails newUser = User.withUsername(phone)
-                        .password("{noop}" + password)
-                        .roles("CUSTOMER")
-                        .build();
-                manager.createUser(newUser);
-            }
-
-            // 2. Save the entity to the persistent Database
+            // Save persistent customer record first.
             Customer customer = new Customer();
-            customer.setName(fullName);
-            customer.setPhone(phone);
-            customer.setCustomerId(Long.parseLong(phone));
-            customer.setEmail(phone + "@customer.pharmaflow.com"); // Auto-generating email since it is required and unique
-            customer.setPassword(password);
+                customer.setName(safeName);
+                customer.setPhone(safePhone);
+                customer.setCustomerId(Long.parseLong(safePhone));
+                customer.setEmail(safePhone + "@customer.pharmaflow.com"); // Auto-generating email since it is required and unique
+                customer.setPassword("{noop}" + safePassword);
             customerRepository.save(customer);
 
             redirectAttributes.addFlashAttribute("successMessage", "Registration successful! Please log in.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Registration failed: " + e.getMessage());
+            return "redirect:/login?tab=signup";
         }
-        return "redirect:/login";
+        return "redirect:/login?tab=signup";
     }
 }

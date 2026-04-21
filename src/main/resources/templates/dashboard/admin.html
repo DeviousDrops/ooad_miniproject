@@ -196,14 +196,6 @@
     </section>
 
     <section class="panel">
-        <h3>Automated Supply Actions (@Scheduled)</h3>
-        <p class="small-note" th:if="${#lists.isEmpty(automationActions)}">No automation actions recorded yet.</p>
-        <ul th:if="${!#lists.isEmpty(automationActions)}">
-            <li th:each="action : ${automationActions}" th:text="${action}"></li>
-        </ul>
-    </section>
-
-    <section class="panel">
         <h3>Current Medicines</h3>
         <p class="small-note" th:text="'Total medicines: ' + ${#lists.size(medicines)}"></p>
         <div class="table-wrap" th:if="${!#lists.isEmpty(medicines)}">
@@ -315,6 +307,7 @@
         </div>
     </section>
 </div>
+<script src="/js/form-validation.js"></script>
 <script>
     (() => {
         const tabButtons = document.querySelectorAll('.tab-btn');

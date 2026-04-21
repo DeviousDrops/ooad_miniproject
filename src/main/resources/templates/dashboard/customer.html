@@ -25,6 +25,9 @@
     <section class="panel" th:if="${infoMessage}">
         <p th:text="${infoMessage}"></p>
     </section>
+    <section class="panel" th:if="${errorMessage}" style="background-color: #fee; border-left: 4px solid #c33;">
+        <p style="color: #c33;" th:text="${errorMessage}"></p>
+    </section>
     <section class="panel" th:if="${latestOrderId}">
         <p>
             Latest Order ID:
@@ -34,55 +37,40 @@
 
     <section class="panel">
         <h3>Search Medicines</h3>
-        <form method="get" action="/dashboard/customer" class="two-col">
-            <div>
-                <label for="query">Name or Category</label>
-                <input id="query" name="query" th:value="${query}">
+        <form method="get" action="/dashboard/customer">
+            <div class="two-col">
+                <div>
+                    <label class="form-label">Search By</label>
+                    <div style="display:flex; gap:16px; align-items:center; margin-top:6px;">
+                        <label for="searchByName" style="display:flex; align-items:center; gap:6px; margin:0;">
+                            <input type="radio" id="searchByName" name="searchBy" value="NAME" th:checked="${searchBy == 'NAME'}">
+                            <span>Name</span>
+                        </label>
+                        <label for="searchByCategory" style="display:flex; align-items:center; gap:6px; margin:0;">
+                            <input type="radio" id="searchByCategory" name="searchBy" value="CATEGORY" th:checked="${searchBy == 'CATEGORY'}">
+                            <span>Category</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label for="selectedValue">Select Value</label>
+                    <select id="selectedValue" name="selectedValue">
+                        <option value="">All</option>
+                        <option th:if="${searchBy == 'NAME'}"
+                                th:each="name : ${medicineNames}"
+                                th:value="${name}"
+                                th:text="${name}"
+                                th:selected="${name == selectedValue}"></option>
+                        <option th:if="${searchBy == 'CATEGORY'}"
+                                th:each="category : ${medicineCategories}"
+                                th:value="${category}"
+                                th:text="${category}"
+                                th:selected="${category == selectedValue}"></option>
+                    </select>
+                </div>
             </div>
-            <div class="actions" style="align-items:end;">
+            <div>
                 <button class="btn btn-primary" type="submit">Search</button>
-            </div>
-        </form>
-    </section>
-
-    <section class="panel">
-        <h3>Place Order</h3>
-        <form method="post" action="/customer/order" class="two-col">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <div>
-                <label for="medicineId">Medicine ID</label>
-                <input id="medicineId" name="medicineId" type="number" min="1" required>
-                <p class="small-note">Pick this from the Medicine List table below (ID column).</p>
-            </div>
-            <div>
-                <label for="quantity">Quantity</label>
-                <input id="quantity" name="quantity" type="number" min="1" required>
-                <div class="actions" style="margin-top:12px;">
-                    <button class="btn btn-primary" type="submit">Submit Order</button>
-                </div>
-            </div>
-        </form>
-    </section>
-
-    <section class="panel">
-        <h3>Payment Gateway</h3>
-        <form method="post" action="/customer/payment" class="two-col">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <div>
-                <label for="billId">Bill ID</label>
-                <input id="billId" name="billId" type="number" min="1" required>
-                <p class="small-note">Use a Bill ID from the Bill History table below.</p>
-            </div>
-            <div>
-                <label for="paymentMethod">Payment Method</label>
-                <select id="paymentMethod" name="paymentMethod">
-                    <option value="UPI">UPI</option>
-                    <option value="CARD">CARD</option>
-                    <option value="CASH">CASH</option>
-                </select>
-                <div class="actions" style="margin-top:12px;">
-                    <button class="btn btn-secondary" type="submit">Pay</button>
-                </div>
             </div>
         </form>
     </section>
@@ -116,6 +104,33 @@
     </section>
 
     <section class="panel">
+        <h3>Place Order</h3>
+        <form method="post" action="/customer/order">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div id="orderLinesContainer">
+                <div class="two-col order-line" style="margin-bottom:10px;">
+                    <div>
+                        <label>Medicine ID</label>
+                        <select name="medicineId" required>
+                            <option th:each="medicine : ${medicines}"
+                                    th:value="${medicine.medicineId}"
+                                    th:text="${medicine.medicineId + ' - ' + medicine.name}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Quantity</label>
+                        <input name="quantity" type="number" min="1" required>
+                    </div>
+                </div>
+            </div>
+            <div class="actions" style="margin-top:12px; gap:8px;">
+                <button class="btn btn-ghost" type="button" id="addOrderLineBtn">Add Another Medicine</button>
+                <button class="btn btn-primary" type="submit">Submit Order</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
         <h3>Your Orders</h3>
         <p class="small-note" th:text="'Orders found: ' + ${#lists.size(orders)}"></p>
         <div style="overflow:auto;">
@@ -141,6 +156,29 @@
                 </tbody>
             </table>
         </div>
+    </section>
+
+    <section class="panel">
+        <h3>Payment Gateway</h3>
+        <form method="post" action="/customer/payment" class="two-col">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div>
+                <label for="billId">Bill ID</label>
+                <input id="billId" name="billId" type="number" min="1" required>
+                <p class="small-note">Use a Bill ID from the Bill History table below.</p>
+            </div>
+            <div>
+                <label for="paymentMethod">Payment Method</label>
+                <select id="paymentMethod" name="paymentMethod">
+                    <option value="UPI">UPI</option>
+                    <option value="CARD">CARD</option>
+                    <option value="CASH">CASH</option>
+                </select>
+                <div class="actions" style="margin-top:12px;">
+                    <button class="btn btn-secondary" type="submit">Pay</button>
+                </div>
+            </div>
+        </form>
     </section>
 
     <section class="panel">
@@ -173,10 +211,72 @@
         </div>
     </section>
 
-    <section class="panel">
-        <h3>Prescription History</h3>
-        <p class="small-note" th:text="'Prescriptions found: ' + ${#lists.size(prescriptions)}"></p>
-    </section>
 </div>
+<script src="/js/form-validation.js"></script>
+<script th:inline="javascript">
+    const nameRadio = document.getElementById('searchByName');
+    const categoryRadio = document.getElementById('searchByCategory');
+    const selectedValueDropdown = document.getElementById('selectedValue');
+    const medicineNames = /*[[${medicineNames}]]*/ [];
+    const medicineCategories = /*[[${medicineCategories}]]*/ [];
+    const previouslySelectedValue = /*[[${selectedValue}]]*/ '';
+
+    function refillSelectedValueOptions(items) {
+        if (!selectedValueDropdown) {
+            return;
+        }
+
+        selectedValueDropdown.innerHTML = '';
+        const allOption = document.createElement('option');
+        allOption.value = '';
+        allOption.textContent = 'All';
+        selectedValueDropdown.appendChild(allOption);
+
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item;
+            option.textContent = item;
+            if (item === previouslySelectedValue) {
+                option.selected = true;
+            }
+            selectedValueDropdown.appendChild(option);
+        });
+    }
+
+    if (nameRadio && categoryRadio) {
+        nameRadio.addEventListener('change', function () {
+            if (this.checked) {
+                refillSelectedValueOptions(medicineNames);
+            }
+        });
+        categoryRadio.addEventListener('change', function () {
+            if (this.checked) {
+                refillSelectedValueOptions(medicineCategories);
+            }
+        });
+
+        if (categoryRadio.checked) {
+            refillSelectedValueOptions(medicineCategories);
+        } else {
+            refillSelectedValueOptions(medicineNames);
+        }
+    }
+
+    const addOrderLineBtn = document.getElementById('addOrderLineBtn');
+    const orderLinesContainer = document.getElementById('orderLinesContainer');
+    if (addOrderLineBtn && orderLinesContainer) {
+        addOrderLineBtn.addEventListener('click', function () {
+            const firstLine = orderLinesContainer.querySelector('.order-line');
+            if (!firstLine) {
+                return;
+            }
+            const clone = firstLine.cloneNode(true);
+            clone.querySelectorAll('input').forEach(input => {
+                input.value = '';
+            });
+            orderLinesContainer.appendChild(clone);
+        });
+    }
+</script>
 </body>
 </html>

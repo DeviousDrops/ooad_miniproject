@@ -1,25 +1,20 @@
 package com.pharmacy.bootstrap;
 
 import com.pharmacy.model.Admin;
-import com.pharmacy.model.Customer;
 import com.pharmacy.model.Inventory;
 import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Pharmacist;
-import com.pharmacy.model.Prescription;
 import com.pharmacy.model.Supplier;
 import com.pharmacy.repository.AdminRepository;
-import com.pharmacy.repository.CustomerRepository;
 import com.pharmacy.repository.InventoryRepository;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.repository.PharmacistRepository;
-import com.pharmacy.repository.PrescriptionRepository;
 import com.pharmacy.repository.SupplierRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -28,26 +23,20 @@ public class DataInitializer implements CommandLineRunner {
     private final MedicineRepository medicineRepository;
     private final AdminRepository adminRepository;
     private final PharmacistRepository pharmacistRepository;
-    private final CustomerRepository customerRepository;
     private final SupplierRepository supplierRepository;
-    private final PrescriptionRepository prescriptionRepository;
 
     public DataInitializer(
             InventoryRepository inventoryRepository,
             MedicineRepository medicineRepository,
             AdminRepository adminRepository,
             PharmacistRepository pharmacistRepository,
-            CustomerRepository customerRepository,
-            SupplierRepository supplierRepository,
-            PrescriptionRepository prescriptionRepository
+            SupplierRepository supplierRepository
     ) {
         this.inventoryRepository = inventoryRepository;
         this.medicineRepository = medicineRepository;
         this.adminRepository = adminRepository;
         this.pharmacistRepository = pharmacistRepository;
-        this.customerRepository = customerRepository;
         this.supplierRepository = supplierRepository;
-        this.prescriptionRepository = prescriptionRepository;
     }
 
     @Override
@@ -98,31 +87,7 @@ public class DataInitializer implements CommandLineRunner {
             pharmacistRepository.save(pharmacist);
         }
 
-        if (customerRepository.count() == 0) {
-            Customer customer = new Customer();
-            customer.setName("Walk-in Customer");
-            customer.setEmail("customer@pharmaflow.local");
-            customer.setPhone("9876543210"); // Phone number is the customer identity and login username.
-            customer.setPassword("customer123");
-            customer.setCustomerId(Long.parseLong("9876543210"));
-            customer.setLoyaltyPoints(120);
-            customer.setAddress("MG Road, Bengaluru");
-            customerRepository.save(customer);
-
-            // Seed 6 additional customers to meet the 7 minimum requirement
-            String[] additionalPhones = {"9876543211", "9876543212", "9876543213", "9876543214", "9876543215", "9876543216"};
-            for (int i = 0; i < additionalPhones.length; i++) {
-                Customer c = new Customer();
-                c.setName("Regular Customer " + (i + 1));
-                c.setEmail("customer" + (i + 1) + "@pharmaflow.local");
-                c.setPhone(additionalPhones[i]);
-                c.setPassword("customer123");
-                c.setCustomerId(Long.parseLong(additionalPhones[i]));
-                c.setLoyaltyPoints(50 + (i * 10));
-                c.setAddress("Avenue " + (i + 1) + ", Bengaluru");
-                customerRepository.save(c);
-            }
-        }
+        // Customers are intentionally not seeded; create them through the web signup flow.
 
         if (supplierRepository.count() == 0) {
             Supplier supplier = new Supplier();
@@ -136,33 +101,7 @@ public class DataInitializer implements CommandLineRunner {
             supplierRepository.save(supplier);
         }
 
-        if (prescriptionRepository.count() == 0 && customerRepository.count() > 0 && medicineRepository.count() > 0) {
-            List<Customer> allCustomers = customerRepository.findAll();
-            List<Medicine> allMedicines = medicineRepository.findAll();
-
-            if (!allCustomers.isEmpty() && !allMedicines.isEmpty()) {
-                Prescription prescription = new Prescription();
-                prescription.setCustomer(allCustomers.get(0));
-                prescription.setMedicine(allMedicines.get(0));
-                prescription.setDoctorName("Dr. Sharma");
-                prescription.setDosage("1 tablet after food");
-                prescription.setNotes("Continue for 5 days");
-                prescriptionRepository.save(prescription);
-            }
-
-            // Seed 6 additional prescriptions assigning different medicines to different customers
-            for (int i = 1; i <= 6; i++) {
-                if (i < allCustomers.size() && i < allMedicines.size()) {
-                    Prescription p = new Prescription();
-                    p.setCustomer(allCustomers.get(i));
-                    p.setMedicine(allMedicines.get(i));
-                    p.setDoctorName("Dr. Health " + i);
-                    p.setDosage("1 tablet daily");
-                    p.setNotes("Standard prescription notes");
-                    prescriptionRepository.save(p);
-                }
-            }
-        }
+        // Prescriptions are not auto-seeded; they should be created by application workflows.
     }
 
     private void seedMedicine(

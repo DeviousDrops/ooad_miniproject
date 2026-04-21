@@ -46,7 +46,6 @@ public class AdminController {
         model.addAttribute("invoices", adminService.listInvoices());
         model.addAttribute("alerts", adminService.currentLowStockAlerts());
         model.addAttribute("shipments", adminService.listShipments());
-        model.addAttribute("automationActions", adminService.latestAutomationActions());
         return "dashboard/admin";
     }
 
@@ -93,22 +92,34 @@ public class AdminController {
             @RequestParam("medicineId") Long medicineId,
             RedirectAttributes redirectAttributes
     ) {
-        adminService.deleteMedicine(medicineId);
-        redirectAttributes.addFlashAttribute("successMessage", "Medicine deleted successfully.");
+        try {
+            adminService.deleteMedicine(medicineId);
+            redirectAttributes.addFlashAttribute("successMessage", "Medicine deleted successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/admin";
     }
 
     @PostMapping("/admin/report/sales")
     public String salesReport(RedirectAttributes redirectAttributes) {
-        Report report = adminService.generateSalesAnalytics();
-        redirectAttributes.addFlashAttribute("infoMessage", report.getSummary());
+        try {
+            Report report = adminService.generateSalesAnalytics();
+            redirectAttributes.addFlashAttribute("infoMessage", report.getSummary());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/admin";
     }
 
     @PostMapping("/admin/report/inventory")
     public String inventoryReport(RedirectAttributes redirectAttributes) {
-        Report report = adminService.generateInventoryReport();
-        redirectAttributes.addFlashAttribute("infoMessage", report.getSummary());
+        try {
+            Report report = adminService.generateInventoryReport();
+            redirectAttributes.addFlashAttribute("infoMessage", report.getSummary());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/admin";
     }
 
@@ -117,8 +128,12 @@ public class AdminController {
             @RequestParam("invoiceId") Long invoiceId,
             RedirectAttributes redirectAttributes
     ) {
-        adminService.payInvoice(invoiceId);
-        redirectAttributes.addFlashAttribute("successMessage", "Bill paid successfully.");
+        try {
+            adminService.payInvoice(invoiceId);
+            redirectAttributes.addFlashAttribute("successMessage", "Bill paid successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/admin";
     }
 

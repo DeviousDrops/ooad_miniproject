@@ -40,10 +40,14 @@ public class PharmacistController {
             @RequestParam("medicineId") Long medicineId,
             RedirectAttributes redirectAttributes
     ) {
-        boolean available = pharmacistService.verifyStock(medicineId);
-        redirectAttributes.addFlashAttribute("infoMessage", available
-                ? "Stock is available for medicine ID " + medicineId
-                : "Stock is not available for medicine ID " + medicineId);
+        try {
+            boolean available = pharmacistService.verifyStock(medicineId);
+            redirectAttributes.addFlashAttribute("infoMessage", available
+                    ? "Stock is available for medicine ID " + medicineId
+                    : "Stock is not available for medicine ID " + medicineId);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/pharmacist";
     }
 
@@ -70,8 +74,12 @@ public class PharmacistController {
             @RequestParam("qty") Integer qty,
             RedirectAttributes redirectAttributes
     ) {
-        pharmacistService.updateInventoryStatus(medicineId, qty);
-        redirectAttributes.addFlashAttribute("successMessage", "Inventory adjusted successfully.");
+        try {
+            pharmacistService.updateInventoryStatus(medicineId, qty);
+            redirectAttributes.addFlashAttribute("successMessage", "Inventory adjusted successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
         return "redirect:/dashboard/pharmacist";
     }
 }

@@ -31,6 +31,7 @@
         <!-- Login Form -->
         <div class="tab-pane fade show active" id="login" role="tabpanel">
             <form th:action="@{/login}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="mb-3">
                     <label for="role" class="form-label">Role</label>
                     <select class="form-select" id="role" name="role">
@@ -49,18 +50,23 @@
                     <input type="password" id="password" name="password" class="form-control" required />
                 </div>
                 <div th:if="${param.error}" class="alert alert-danger py-2">
-                    Invalid username, password, or role.
+                    Invalid username or password.
                 </div>
                 <div th:if="${param.logout}" class="alert alert-success py-2">
                     You have been logged out.
                 </div>
+                <div th:if="${successMessage}" class="alert alert-success py-2" th:text="${successMessage}"></div>
+                <div th:if="${errorMessage}" class="alert alert-danger py-2" th:text="${errorMessage}"></div>
                 <button type="submit" class="btn btn-primary w-100 mt-2">Login</button>
             </form>
         </div>
 
         <!-- Sign Up Form (Customers Only) -->
         <div class="tab-pane fade" id="signup" role="tabpanel">
+            <div th:if="${successMessage}" class="alert alert-success py-2" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" class="alert alert-danger py-2" th:text="${errorMessage}"></div>
             <form th:action="@{/register}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="mb-3">
                     <label for="newFullName" class="form-label">Full Name</label>
                     <input type="text" id="newFullName" name="fullName" class="form-control" required />
@@ -71,7 +77,7 @@
                 </div>
                 <div class="mb-3">
                     <label for="newPassword" class="form-label">Password</label>
-                    <input type="password" id="newPassword" name="password" class="form-control" required />
+                    <input type="password" id="newPassword" name="password" class="form-control" minlength="6" required />
                 </div>
                 <button type="submit" class="btn btn-success w-100 mt-2">Sign Up</button>
             </form>
@@ -81,5 +87,16 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/form-validation.js"></script>
+<script th:inline="javascript">
+    const hasSignupFlash = /*[[${successMessage != null or errorMessage != null}]]*/ false;
+    const signupTabRequested = /*[[${param.tab != null and #lists.contains(param.tab, 'signup')}]]*/ false;
+    if (hasSignupFlash || signupTabRequested) {
+        const trigger = document.querySelector('#signup-tab');
+        if (trigger) {
+            bootstrap.Tab.getOrCreateInstance(trigger).show();
+        }
+    }
+</script>
 </body>
 </html>

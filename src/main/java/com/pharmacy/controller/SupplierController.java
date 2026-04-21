@@ -43,8 +43,14 @@ public class SupplierController {
             @RequestParam("expectedDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedDate,
             RedirectAttributes redirectAttributes
     ) {
-        Invoice invoice = supplierService.generateSupplierBill(supplierId, medicineIds, quantities, expectedDate);
-        redirectAttributes.addFlashAttribute("successMessage", "Bill generated successfully. ID: " + invoice.getInvoiceId());
+        try {
+            Invoice invoice = supplierService.generateSupplierBill(supplierId, medicineIds, quantities, expectedDate);
+            redirectAttributes.addFlashAttribute("successMessage", "Bill generated successfully. ID: " + invoice.getInvoiceId());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to generate bill. Please verify medicine selections and quantities.");
+        }
         return "redirect:/dashboard/supplier";
     }
 
@@ -54,14 +60,20 @@ public class SupplierController {
             @RequestParam("status") Shipment.ShipmentStatus status,
             RedirectAttributes redirectAttributes
     ) {
-        supplierService.updateShipmentStatus(shipmentId, status);
-        redirectAttributes.addFlashAttribute("successMessage", "Delivery status updated successfully.");
+        try {
+            supplierService.updateShipmentStatus(shipmentId, status);
+            redirectAttributes.addFlashAttribute("successMessage", "Delivery status updated successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to update shipment status. Please verify shipment ID and status.");
+        }
         return "redirect:/dashboard/supplier";
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public String handleSupplierFlowErrors(RuntimeException ex, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("infoMessage", ex.getMessage());
+        redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         return "redirect:/dashboard/supplier";
     }
 }

@@ -62,9 +62,9 @@ public class PharmacistService {
     }
 
     @Transactional(readOnly = true)
-    public float applyLoyaltyDiscount(long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerId));
+    public float applyLoyaltyDiscount(String customerPhone) {
+        Customer customer = customerRepository.findByPhone(customerPhone)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerPhone));
 
         int loyalty = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         if (loyalty >= 200) {

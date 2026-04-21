@@ -132,8 +132,8 @@ public class BillingFacade {
     }
 
     @Transactional(readOnly = true)
-    public List<Bill> customerBillHistory(Long customerId) {
-        return billRepository.findByOrderCustomerUserId(customerId);
+    public List<Bill> customerBillHistory(String customerPhone) {
+        return billRepository.findByOrderCustomerPhoneOrderByGeneratedAtDesc(customerPhone);
     }
 
     private BigDecimal resolveDiscount(Customer customer) {

@@ -8,4 +8,6 @@ import java.util.List;
 public interface PrescriptionRepository extends JpaRepository<Prescription, Long> {
 
     List<Prescription> findByCustomerUserId(Long userId);
+
+    List<Prescription> findByCustomerPhone(String phone);
 }

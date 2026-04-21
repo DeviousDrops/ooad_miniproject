@@ -31,11 +31,11 @@ class BillingFlowSmokeTest {
 
     @Test
     void pharmacistCanProcessNewOrder() {
-        Long customerRef = customerRepository.findAll().get(0).getCustomerId();
+        String customerPhone = customerRepository.findAll().get(0).getPhone();
         Medicine medicine = medicineRepository.findAll().get(0);
 
         Order order = customerService.placeOrder(
-                customerRef,
+                customerPhone,
                 List.of(new CustomerService.OrderRequestItem(medicine.getMedicineId(), 1))
         );
 

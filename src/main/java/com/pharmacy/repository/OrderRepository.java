@@ -9,5 +9,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByCustomerUserId(Long userId);
 
+    List<Order> findByCustomerPhoneOrderByOrderedAtDesc(String phone);
+
     List<Order> findByStatusOrderByOrderedAtAsc(Order.OrderStatus status);
 }

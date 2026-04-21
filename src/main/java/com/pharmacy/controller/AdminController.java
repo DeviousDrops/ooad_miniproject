@@ -4,7 +4,6 @@ import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Report;
 import com.pharmacy.repository.InventoryRepository;
 import com.pharmacy.service.AdminService;
-import com.pharmacy.service.InventoryObserver;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -24,12 +23,10 @@ public class AdminController {
 
     private final AdminService adminService;
     private final InventoryRepository inventoryRepository;
-    private final InventoryObserver inventoryObserver;
 
-    public AdminController(AdminService adminService, InventoryRepository inventoryRepository, InventoryObserver inventoryObserver) {
+    public AdminController(AdminService adminService, InventoryRepository inventoryRepository) {
         this.adminService = adminService;
         this.inventoryRepository = inventoryRepository;
-        this.inventoryObserver = inventoryObserver;
     }
 
     @GetMapping("/dashboard/admin")

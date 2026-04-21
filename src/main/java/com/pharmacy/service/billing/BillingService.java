@@ -51,13 +51,13 @@ public class BillingService {
         this.inventoryService = inventoryService;
     }
 
-    public Order placeOrder(Long customerId, List<OrderLineCommand> items) {
+    public Order placeOrder(String customerPhone, List<OrderLineCommand> items) {
         if (items == null || items.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order requires at least one order item");
         }
 
-        Long safeCustomerId = Objects.requireNonNull(customerId, "customerId is required");
-        Customer customer = customerRepository.findById(safeCustomerId)
+        String safeCustomerPhone = Objects.requireNonNull(customerPhone, "customerPhone is required");
+        Customer customer = customerRepository.findByPhone(safeCustomerPhone)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
 
         Order order = new Order();
@@ -149,8 +149,9 @@ public class BillingService {
     }
 
     @Transactional(readOnly = true)
-    public List<Bill> customerBillHistory(Long customerId) {
-        return billRepository.findByOrderCustomerUserId(customerId);
+    public List<Bill> customerBillHistory(String customerPhone) {
+        String safeCustomerPhone = Objects.requireNonNull(customerPhone, "customerPhone is required");
+        return billRepository.findByOrderCustomerPhoneOrderByGeneratedAtDesc(safeCustomerPhone);
     }
 
     private BigDecimal sanitizeRate(BigDecimal rate) {

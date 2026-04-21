@@ -50,12 +50,12 @@ public class CustomerService {
     }
 
     @Transactional
-    public Order placeOrder(Long customerId, List<OrderRequestItem> items) {
+    public Order placeOrder(String customerPhone, List<OrderRequestItem> items) {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Order requires at least one medicine");
         }
 
-        Customer customer = resolveCustomer(customerId);
+        Customer customer = resolveCustomer(customerPhone);
 
         Order order = new Order();
         order.setCustomer(customer);
@@ -85,9 +85,15 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<Prescription> viewPrescriptionHistory(Long customerId) {
-        Customer customer = resolveCustomer(customerId);
-        return prescriptionRepository.findByCustomerUserId(customer.getUserId());
+    public List<Order> viewOrderHistory(String customerPhone) {
+        Customer customer = resolveCustomer(customerPhone);
+        return orderRepository.findByCustomerPhoneOrderByOrderedAtDesc(customer.getPhone());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Prescription> viewPrescriptionHistory(String customerPhone) {
+        Customer customer = resolveCustomer(customerPhone);
+        return prescriptionRepository.findByCustomerPhone(customer.getPhone());
     }
 
     @Transactional
@@ -96,27 +102,18 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.pharmacy.model.Bill> viewBillHistory(Long customerId) {
-        Customer customer = resolveCustomer(customerId);
-        return billingFacade.customerBillHistory(customer.getUserId());
+    public List<com.pharmacy.model.Bill> viewBillHistory(String customerPhone) {
+        Customer customer = resolveCustomer(customerPhone);
+        return billingFacade.customerBillHistory(customer.getPhone());
     }
 
-    @Transactional(readOnly = true)
-    public Long defaultCustomerReference() {
-        return customerRepository.findAll().stream()
-                .findFirst()
-                .map(customer -> customer.getCustomerId() != null ? customer.getCustomerId() : customer.getUserId())
-                .orElse(1L);
-    }
-
-    private Customer resolveCustomer(Long customerRef) {
-        if (customerRef == null) {
-            throw new IllegalArgumentException("Customer id is required");
+    private Customer resolveCustomer(String customerPhone) {
+        if (customerPhone == null || customerPhone.isBlank()) {
+            throw new IllegalArgumentException("Customer phone is required");
         }
 
-        return customerRepository.findById(customerRef)
-                .or(() -> customerRepository.findByCustomerId(customerRef))
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerRef));
+        return customerRepository.findByPhone(customerPhone)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerPhone));
     }
 
     public record OrderRequestItem(Long medicineId, Integer quantity) {

@@ -35,7 +35,6 @@
     <section class="panel">
         <h3>Search Medicines</h3>
         <form method="get" action="/dashboard/customer" class="two-col">
-            <input type="hidden" name="customerId" th:value="${customerId}">
             <div>
                 <label for="query">Name or Category</label>
                 <input id="query" name="query" th:value="${query}">
@@ -51,9 +50,6 @@
         <form method="post" action="/customer/order" class="two-col">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div>
-                <label for="customerId">Customer ID</label>
-                <input id="customerId" name="customerId" th:value="${customerId}" type="number" min="1" required>
-                <p class="small-note">Use the prefilled value unless you intentionally want another customer reference.</p>
                 <label for="medicineId">Medicine ID</label>
                 <input id="medicineId" name="medicineId" type="number" min="1" required>
                 <p class="small-note">Pick this from the Medicine List table below (ID column).</p>
@@ -72,7 +68,6 @@
         <h3>Payment Gateway</h3>
         <form method="post" action="/customer/payment" class="two-col">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <input type="hidden" name="customerId" th:value="${customerId}">
             <div>
                 <label for="billId">Bill ID</label>
                 <input id="billId" name="billId" type="number" min="1" required>
@@ -114,6 +109,34 @@
                     <td style="padding:8px;" th:text="${medicine.price}"></td>
                     <td style="padding:8px;" th:text="${medicine.stockQty}"></td>
                     <td style="padding:8px;" th:text="${medicine.expiryDate}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>Your Orders</h3>
+        <p class="small-note" th:text="'Orders found: ' + ${#lists.size(orders)}"></p>
+        <div style="overflow:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                <tr>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Placed At</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total Amount</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="order : ${orders}">
+                    <td style="padding:8px;" th:text="${order.orderId}"></td>
+                    <td style="padding:8px;" th:text="${order.orderedAt}"></td>
+                    <td style="padding:8px;" th:text="${order.totalAmount}"></td>
+                    <td style="padding:8px;" th:text="${order.status}"></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(orders)}">
+                    <td style="padding:8px;" colspan="4">No orders yet. Place one above!</td>
                 </tr>
                 </tbody>
             </table>

@@ -76,8 +76,13 @@ public class SupplierService {
 
         BigDecimal total = BigDecimal.ZERO;
         for (int i = 0; i < medicineIds.size(); i++) {
-            Medicine medicine = medicineRepository.findById(medicineIds.get(i))
-                    .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineIds.get(i)));
+            Long medicineId = medicineIds.get(i);
+            if (medicineId == null) {
+                throw new IllegalArgumentException("Medicine id is required");
+            }
+
+            Medicine medicine = medicineRepository.findById(medicineId)
+                    .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineId));
             Integer quantity = quantities.get(i);
             if (quantity == null || quantity < 1) {
                 throw new IllegalArgumentException("Quantity must be at least 1");

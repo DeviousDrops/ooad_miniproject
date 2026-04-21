@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -101,12 +102,26 @@ public class DataInitializer implements CommandLineRunner {
             Customer customer = new Customer();
             customer.setName("Walk-in Customer");
             customer.setEmail("customer@pharmaflow.local");
-            customer.setPhone("9000000003");
+            customer.setPhone("9876543210"); // Phone number is the customer identity and login username.
             customer.setPassword("customer123");
-            customer.setCustomerId(1001L);
+            customer.setCustomerId(Long.parseLong("9876543210"));
             customer.setLoyaltyPoints(120);
             customer.setAddress("MG Road, Bengaluru");
             customerRepository.save(customer);
+
+            // Seed 6 additional customers to meet the 7 minimum requirement
+            String[] additionalPhones = {"9876543211", "9876543212", "9876543213", "9876543214", "9876543215", "9876543216"};
+            for (int i = 0; i < additionalPhones.length; i++) {
+                Customer c = new Customer();
+                c.setName("Regular Customer " + (i + 1));
+                c.setEmail("customer" + (i + 1) + "@pharmaflow.local");
+                c.setPhone(additionalPhones[i]);
+                c.setPassword("customer123");
+                c.setCustomerId(Long.parseLong(additionalPhones[i]));
+                c.setLoyaltyPoints(50 + (i * 10));
+                c.setAddress("Avenue " + (i + 1) + ", Bengaluru");
+                customerRepository.save(c);
+            }
         }
 
         if (supplierRepository.count() == 0) {
@@ -122,16 +137,31 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         if (prescriptionRepository.count() == 0 && customerRepository.count() > 0 && medicineRepository.count() > 0) {
-            Customer customer = customerRepository.findAll().get(0);
-            Medicine medicine = medicineRepository.findAll().get(0);
+            List<Customer> allCustomers = customerRepository.findAll();
+            List<Medicine> allMedicines = medicineRepository.findAll();
 
-            Prescription prescription = new Prescription();
-            prescription.setCustomer(customer);
-            prescription.setMedicine(medicine);
-            prescription.setDoctorName("Dr. Sharma");
-            prescription.setDosage("1 tablet after food");
-            prescription.setNotes("Continue for 5 days");
-            prescriptionRepository.save(prescription);
+            if (!allCustomers.isEmpty() && !allMedicines.isEmpty()) {
+                Prescription prescription = new Prescription();
+                prescription.setCustomer(allCustomers.get(0));
+                prescription.setMedicine(allMedicines.get(0));
+                prescription.setDoctorName("Dr. Sharma");
+                prescription.setDosage("1 tablet after food");
+                prescription.setNotes("Continue for 5 days");
+                prescriptionRepository.save(prescription);
+            }
+
+            // Seed 6 additional prescriptions assigning different medicines to different customers
+            for (int i = 1; i <= 6; i++) {
+                if (i < allCustomers.size() && i < allMedicines.size()) {
+                    Prescription p = new Prescription();
+                    p.setCustomer(allCustomers.get(i));
+                    p.setMedicine(allMedicines.get(i));
+                    p.setDoctorName("Dr. Health " + i);
+                    p.setDosage("1 tablet daily");
+                    p.setNotes("Standard prescription notes");
+                    prescriptionRepository.save(p);
+                }
+            }
         }
     }
 

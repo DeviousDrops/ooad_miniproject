@@ -40,7 +40,7 @@ public class BillingApiController {
         List<BillingService.OrderLineCommand> lines = request.items().stream()
                 .map(item -> new BillingService.OrderLineCommand(item.medicineId(), item.quantity()))
                 .toList();
-        return billingService.placeOrder(request.customerId(), lines);
+        return billingService.placeOrder(request.customerPhone(), lines);
     }
 
     @PostMapping("/bills/{orderId}")
@@ -59,13 +59,13 @@ public class BillingApiController {
         return billingService.processPayment(billId, request.paymentMethod());
     }
 
-    @GetMapping("/history/{customerId}")
-    public List<Bill> history(@PathVariable("customerId") Long customerId) {
-        return billingService.customerBillHistory(customerId);
+    @GetMapping("/history/{customerPhone}")
+    public List<Bill> history(@PathVariable("customerPhone") String customerPhone) {
+        return billingService.customerBillHistory(customerPhone);
     }
 
     public record PlaceOrderRequest(
-            @NotNull Long customerId,
+            @NotNull String customerPhone,
             @NotEmpty List<@Valid OrderLineItemRequest> items
     ) {
     }

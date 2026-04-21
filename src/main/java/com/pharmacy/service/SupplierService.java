@@ -20,7 +20,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service("portalSupplierService")
-@SuppressWarnings("null")
 public class SupplierService {
 
     private final SupplierRepository supplierRepository;

@@ -31,7 +31,7 @@ public class SecurityConfig {
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/login", "/css/**").permitAll()
+                        .requestMatchers("/", "/login", "/register", "/css/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/dashboard/admin", "/admin/**").hasRole("ADMIN")
@@ -104,16 +104,18 @@ public class SecurityConfig {
                 .roles("PHARMACIST")
                 .build();
 
-        UserDetails customer = User.withUsername("customer")
-                .password("{noop}customer123")
-                .roles("CUSTOMER")
-                .build();
-
         UserDetails supplier = User.withUsername("supplier")
                 .password("{noop}supplier123")
                 .roles("SUPPLIER")
                 .build();
 
-        return new InMemoryUserDetailsManager(admin, pharmacist, customer, supplier);
+        InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager(admin, pharmacist, supplier);
+        for (String phone : new String[]{"9876543210", "9876543211", "9876543212", "9876543213", "9876543214", "9876543215", "9876543216"}) {
+            manager.createUser(User.withUsername(phone)
+                    .password("{noop}customer123")
+                    .roles("CUSTOMER")
+                    .build());
+        }
+        return manager;
     }
 }

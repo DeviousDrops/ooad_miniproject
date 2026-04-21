@@ -3,7 +3,6 @@ package com.pharmacy.service;
 import com.pharmacy.model.Bill;
 import com.pharmacy.model.Invoice;
 import com.pharmacy.model.Order;
-import com.pharmacy.model.Shipment;
 import com.pharmacy.model.Supplier;
 import org.springframework.stereotype.Component;
 

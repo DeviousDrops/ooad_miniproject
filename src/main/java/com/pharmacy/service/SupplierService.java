@@ -166,6 +166,9 @@ public class SupplierService {
 
     @Transactional
     public Invoice cancelInvoice(Long invoiceId) {
+        if (invoiceId == null) {
+            throw new IllegalArgumentException("Bill ID is required");
+        }
         Invoice invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("Bill not found: " + invoiceId));
         if (invoice.getPaymentStatus() == Invoice.PaymentStatus.PROCESSED) {

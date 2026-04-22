@@ -210,7 +210,6 @@
                     <th>Price</th>
                     <th>Stock</th>
                     <th>Threshold</th>
-                    <th>Inventory</th>
                     <th>Expiry</th>
                 </tr>
                 </thead>
@@ -224,7 +223,6 @@
                     <td th:text="${medicine.price}"></td>
                     <td th:text="${medicine.stockQty}"></td>
                     <td th:text="${medicine.lowStockThreshold}"></td>
-                    <td th:text="${medicine.inventory != null ? medicine.inventory.inventoryId : '-'}"></td>
                     <td th:text="${medicine.expiryDate}"></td>
                 </tr>
                 </tbody>
@@ -260,7 +258,7 @@
                     <td th:text="${invoice.itemCount}"></td>
                     <td th:text="${invoice.deliveryStatusSummary}"></td>
                     <td th:text="${invoice.amount}"></td>
-                    <td th:text="${invoice.paymentStatus != null and invoice.paymentStatus.name() == 'PROCESSED' ? 'Processed' : 'Pending'}"></td>
+                    <td th:text="${invoice.paymentStatus != null and invoice.paymentStatus.name() == 'PROCESSED' ? 'Processed' : invoice.paymentStatus != null and invoice.paymentStatus.name() == 'DECLINED' ? 'Declined' : invoice.paymentStatus != null and invoice.paymentStatus.name() == 'CANCELLED' ? 'Cancelled' : 'Pending'}"></td>
                     <td th:text="${invoice.submittedAt}"></td>
                     <td>
                         <form method="post" action="/admin/bills/pay" th:if="${invoice.paymentStatus == null or invoice.paymentStatus.name() == 'PENDING'}">
@@ -268,7 +266,13 @@
                             <input type="hidden" name="invoiceId" th:value="${invoice.invoiceId}">
                             <button class="btn btn-secondary" type="submit">Pay Bill</button>
                         </form>
-                        <span th:if="${invoice.paymentStatus != null and invoice.paymentStatus.name() == 'PROCESSED'}">Paid</span>
+                        <form method="post" action="/admin/bills/decline" th:if="${invoice.paymentStatus == null or invoice.paymentStatus.name() == 'PENDING'}" style="margin-top:8px;">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="invoiceId" th:value="${invoice.invoiceId}">
+                            <button class="btn btn-danger" type="submit">Decline</button>
+                        </form>
+                        <span th:if="${invoice.paymentStatus != null and invoice.paymentStatus.name() != 'PENDING'}"
+                              th:text="${invoice.paymentStatus.name() == 'PROCESSED' ? 'Paid' : invoice.paymentStatus.name() == 'DECLINED' ? 'Declined' : 'Cancelled'}"></span>
                     </td>
                 </tr>
                 </tbody>
@@ -299,7 +303,7 @@
                     <td th:text="${shipment.medicine.name}"></td>
                     <td th:text="${shipment.quantity}"></td>
                     <td th:text="${shipment.expectedDate}"></td>
-                    <td th:text="${shipment.status == T(com.pharmacy.model.Shipment.ShipmentStatus).DELIVERED ? 'Delivered' : 'In Transit'}"></td>
+                    <td th:text="${shipment.status == T(com.pharmacy.model.Shipment.ShipmentStatus).DELIVERED ? 'Delivered' : shipment.status == T(com.pharmacy.model.Shipment.ShipmentStatus).DECLINED ? 'Declined' : shipment.status == T(com.pharmacy.model.Shipment.ShipmentStatus).CANCELLED ? 'Cancelled' : 'In Transit'}"></td>
                     <td th:text="${shipment.deliveredAt != null ? shipment.deliveredAt : '-'}"></td>
                 </tr>
                 </tbody>

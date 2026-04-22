@@ -71,7 +71,9 @@ public class Invoice {
 
     public enum PaymentStatus {
         PENDING,
-        PROCESSED
+        PROCESSED,
+        DECLINED,
+        CANCELLED
     }
 
     public Long getInvoiceId() {
@@ -172,6 +174,16 @@ public class Invoice {
     public String getDeliveryStatusSummary() {
         if (shipments == null || shipments.isEmpty()) {
             return "No shipments";
+        }
+        boolean anyDeclined = shipments.stream()
+                .anyMatch(shipment -> shipment.getStatus() == Shipment.ShipmentStatus.DECLINED);
+        if (anyDeclined) {
+            return "Declined";
+        }
+        boolean anyCancelled = shipments.stream()
+                .anyMatch(shipment -> shipment.getStatus() == Shipment.ShipmentStatus.CANCELLED);
+        if (anyCancelled) {
+            return "Cancelled";
         }
         boolean allDelivered = shipments.stream()
                 .allMatch(shipment -> shipment.getStatus() == Shipment.ShipmentStatus.DELIVERED);

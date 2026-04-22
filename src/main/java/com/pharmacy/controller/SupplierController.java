@@ -71,6 +71,22 @@ public class SupplierController {
         return "redirect:/dashboard/supplier";
     }
 
+    @PostMapping("/supplier/invoice/cancel")
+    public String cancelInvoice(
+            @RequestParam("invoiceId") Long invoiceId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            supplierService.cancelInvoice(invoiceId);
+            redirectAttributes.addFlashAttribute("successMessage", "Bill cancelled successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to cancel bill. Please verify bill ID.");
+        }
+        return "redirect:/dashboard/supplier";
+    }
+
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public String handleSupplierFlowErrors(RuntimeException ex, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());

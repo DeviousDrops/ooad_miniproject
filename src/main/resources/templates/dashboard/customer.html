@@ -76,35 +76,8 @@
     </section>
 
     <section class="panel">
-        <h3>Medicine List</h3>
-        <div style="overflow:auto;">
-            <table style="width:100%; border-collapse:collapse;">
-                <thead>
-                <tr>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">ID</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Name</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Category</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Price</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Stock</th>
-                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Expiry</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="medicine : ${medicines}">
-                    <td style="padding:8px;" th:text="${medicine.medicineId}"></td>
-                    <td style="padding:8px;" th:text="${medicine.name}"></td>
-                    <td style="padding:8px;" th:text="${medicine.category}"></td>
-                    <td style="padding:8px;" th:text="${medicine.price}"></td>
-                    <td style="padding:8px;" th:text="${medicine.stockQty}"></td>
-                    <td style="padding:8px;" th:text="${medicine.expiryDate}"></td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <section class="panel">
         <h3>Place Order</h3>
+        <p class="small-note">Use the filtered dropdown below to pick medicines by the search you selected above.</p>
         <form method="post" action="/customer/order">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div id="orderLinesContainer">
@@ -141,6 +114,7 @@
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Placed At</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total Amount</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Status</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Action</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -149,9 +123,17 @@
                     <td style="padding:8px;" th:text="${order.orderedAt}"></td>
                     <td style="padding:8px;" th:text="${order.totalAmount}"></td>
                     <td style="padding:8px;" th:text="${order.status}"></td>
+                    <td style="padding:8px;">
+                        <form method="post" action="/customer/order/cancel" th:if="${order.status.name() == 'CREATED'}">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="orderId" th:value="${order.orderId}">
+                            <button class="btn btn-danger" type="submit">Cancel</button>
+                        </form>
+                        <span th:if="${order.status.name() != 'CREATED'}">-</span>
+                    </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(orders)}">
-                    <td style="padding:8px;" colspan="4">No orders yet. Place one above!</td>
+                    <td style="padding:8px;" colspan="5">No orders yet. Place one above!</td>
                 </tr>
                 </tbody>
             </table>

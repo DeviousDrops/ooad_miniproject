@@ -51,6 +51,19 @@ public class PharmacistService {
         return billingFacade.processCustomerBilling(orderId);
     }
 
+    @Transactional
+    public Order declineOrder(long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        if (order.getStatus() != Order.OrderStatus.CREATED) {
+            throw new IllegalStateException("Only pending orders can be declined");
+        }
+
+        order.setStatus(Order.OrderStatus.DECLINED);
+        return orderRepository.saveAndFlush(order);
+    }
+
     @Transactional(readOnly = true)
     public List<Order> findUnprocessedOrders() {
         return orderRepository.findByStatusOrderByOrderedAtAsc(Order.OrderStatus.CREATED);

@@ -83,6 +83,7 @@ public class Order {
         CREATED,
         BILLED,
         PAID,
+        DECLINED,
         CANCELLED
     }
 

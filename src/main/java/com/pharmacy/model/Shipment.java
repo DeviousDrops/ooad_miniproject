@@ -74,7 +74,9 @@ public class Shipment {
 
     public enum ShipmentStatus {
         IN_TRANSIT,
-        DELIVERED
+        DELIVERED,
+        CANCELLED,
+        DECLINED
     }
 
     public Long getShipmentId() {

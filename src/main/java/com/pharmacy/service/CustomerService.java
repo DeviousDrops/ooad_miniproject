@@ -141,6 +141,28 @@ public class CustomerService {
         return billingFacade.customerBillHistory(customer.getPhone());
     }
 
+    @Transactional
+    public Order cancelOrder(String customerPhone, Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("Invalid order ID");
+        }
+
+        Customer customer = resolveCustomer(customerPhone);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        if (order.getCustomer() == null || !customer.getPhone().equals(order.getCustomer().getPhone())) {
+            throw new IllegalStateException("You can only cancel your own orders");
+        }
+
+        if (order.getStatus() != Order.OrderStatus.CREATED) {
+            throw new IllegalStateException("Only pending orders can be cancelled");
+        }
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        return orderRepository.save(order);
+    }
+
     private Customer resolveCustomer(String customerPhone) {
         if (customerPhone == null || customerPhone.isBlank()) {
             throw new IllegalArgumentException("Customer phone is required");

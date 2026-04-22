@@ -108,6 +108,7 @@
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Ordered At</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total Amount</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Status</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Action</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -116,30 +117,27 @@
                     <td style="padding:8px;" th:text="${order.orderedAt}"></td>
                     <td style="padding:8px;" th:text="${order.totalAmount}"></td>
                     <td style="padding:8px;" th:text="${order.status}"></td>
+                    <td style="padding:8px;">
+                        <div class="actions" style="gap:8px;">
+                            <form method="post" action="/pharmacist/process-billing">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="orderId" th:value="${order.orderId}">
+                                <button class="btn btn-secondary" type="submit">Process Bill</button>
+                            </form>
+                            <form method="post" action="/pharmacist/decline-order">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="orderId" th:value="${order.orderId}">
+                                <button class="btn btn-danger" type="submit">Decline</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(unprocessedOrders)}">
-                    <td style="padding:8px;" colspan="4">No unprocessed orders available.</td>
+                    <td style="padding:8px;" colspan="5">No unprocessed orders available.</td>
                 </tr>
                 </tbody>
             </table>
         </div>
-    </section>
-
-    <section class="panel">
-        <h3>Process Customer Billing</h3>
-        <form method="post" action="/pharmacist/process-billing">
-            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-            <label for="orderId">Customer Bill ID (Order ID)</label>
-            <select id="orderId" name="orderId" required>
-                <option th:if="${#lists.isEmpty(unprocessedOrders)}" value="">No pending order available</option>
-                <option th:each="order : ${unprocessedOrders}"
-                        th:value="${order.orderId}"
-                        th:text="${order.orderId + ' - ' + order.status}"></option>
-            </select>
-            <div class="actions" style="margin-top:12px;">
-                <button class="btn btn-secondary" type="submit" th:disabled="${#lists.isEmpty(unprocessedOrders)}">Process Bill</button>
-            </div>
-        </form>
     </section>
 
     <section class="panel">

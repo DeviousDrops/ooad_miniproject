@@ -97,6 +97,22 @@ public class CustomerController {
         return "redirect:/dashboard/customer";
     }
 
+    @PostMapping("/customer/order/cancel")
+    public String cancelOrder(
+            @RequestParam("orderId") Long orderId,
+            Authentication authentication,
+            RedirectAttributes redirectAttributes
+    ) {
+        String customerPhone = currentCustomerPhone(authentication);
+        try {
+            customerService.cancelOrder(customerPhone, orderId);
+            redirectAttributes.addFlashAttribute("successMessage", "Order cancelled successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/dashboard/customer";
+    }
+
     @PostMapping("/customer/bill-history")
     public String showBills(Authentication authentication, RedirectAttributes redirectAttributes) {
         String customerPhone = currentCustomerPhone(authentication);

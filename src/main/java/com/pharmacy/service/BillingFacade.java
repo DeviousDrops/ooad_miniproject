@@ -68,6 +68,10 @@ public class BillingFacade {
             throw new IllegalStateException("Order already processed for billing: " + orderId);
         }
 
+        if (order.getStatus() == Order.OrderStatus.CANCELLED || order.getStatus() == Order.OrderStatus.DECLINED) {
+            throw new IllegalStateException("Cancelled or declined orders cannot be billed");
+        }
+
         if (!verifyStockAvailability(order)) {
             throw new IllegalStateException("Insufficient stock for one or more medicines in this order");
         }

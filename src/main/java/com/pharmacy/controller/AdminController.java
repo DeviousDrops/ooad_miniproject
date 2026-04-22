@@ -137,6 +137,20 @@ public class AdminController {
         return "redirect:/dashboard/admin";
     }
 
+    @PostMapping("/admin/bills/decline")
+    public String declineBill(
+            @RequestParam("invoiceId") Long invoiceId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminService.declineInvoice(invoiceId);
+            redirectAttributes.addFlashAttribute("successMessage", "Bill declined successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/dashboard/admin";
+    }
+
     private Medicine.MedicineType parseMedicineType(String medicineType) {
         if (medicineType == null || medicineType.isBlank()) {
             return Medicine.MedicineType.OTHER;

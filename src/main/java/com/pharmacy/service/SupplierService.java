@@ -141,9 +141,16 @@ public class SupplierService {
         Shipment shipment = shipmentRepository.findById(shipmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Shipment not found: " + shipmentId));
 
+        if (shipment.getInvoice() != null && shipment.getInvoice().getPaymentStatus() != Invoice.PaymentStatus.PENDING) {
+            throw new IllegalStateException("Only shipments for pending bills can be updated.");
+        }
+
         Shipment.ShipmentStatus previousStatus = shipment.getStatus();
         if (previousStatus == Shipment.ShipmentStatus.DELIVERED && status == Shipment.ShipmentStatus.IN_TRANSIT) {
             throw new IllegalStateException("Delivered orders cannot be moved back to in transit.");
+        }
+        if (previousStatus == Shipment.ShipmentStatus.CANCELLED || previousStatus == Shipment.ShipmentStatus.DECLINED) {
+            throw new IllegalStateException("Cancelled or declined orders cannot be updated.");
         }
         shipment.setStatus(status);
         if (status == Shipment.ShipmentStatus.DELIVERED) {
@@ -155,5 +162,33 @@ public class SupplierService {
             shipment.setDeliveredAt(null);
         }
         return shipmentRepository.save(shipment);
+    }
+
+    @Transactional
+    public Invoice cancelInvoice(Long invoiceId) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Bill not found: " + invoiceId));
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.PROCESSED) {
+            throw new IllegalStateException("Paid bills cannot be cancelled.");
+        }
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.DECLINED) {
+            throw new IllegalStateException("Declined bills cannot be cancelled.");
+        }
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.CANCELLED) {
+            throw new IllegalStateException("Bill has already been cancelled.");
+        }
+
+        invoice.setPaymentStatus(Invoice.PaymentStatus.CANCELLED);
+        invoice.setPaidAt(null);
+        if (invoice.getShipments() != null) {
+            invoice.getShipments().forEach(shipment -> {
+                if (shipment.getStatus() != Shipment.ShipmentStatus.DELIVERED) {
+                    shipment.setStatus(Shipment.ShipmentStatus.CANCELLED);
+                    shipment.setDeliveredAt(null);
+                    shipmentRepository.save(shipment);
+                }
+            });
+        }
+        return invoiceRepository.save(invoice);
     }
 }

@@ -185,8 +185,40 @@ public class AdminService {
         if (invoice.getPaymentStatus() == Invoice.PaymentStatus.PROCESSED) {
             throw new IllegalStateException("Bill has already been processed.");
         }
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.CANCELLED
+                || invoice.getPaymentStatus() == Invoice.PaymentStatus.DECLINED) {
+            throw new IllegalStateException("Cancelled or declined bills cannot be paid.");
+        }
         invoice.setPaymentStatus(Invoice.PaymentStatus.PROCESSED);
         invoice.setPaidAt(java.time.LocalDateTime.now());
+        return invoiceRepository.save(invoice);
+    }
+
+    @Transactional
+    public Invoice declineInvoice(Long invoiceId) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new IllegalArgumentException("Bill not found: " + invoiceId));
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.PROCESSED) {
+            throw new IllegalStateException("Paid bills cannot be declined.");
+        }
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.CANCELLED) {
+            throw new IllegalStateException("Cancelled bills cannot be declined.");
+        }
+        if (invoice.getPaymentStatus() == Invoice.PaymentStatus.DECLINED) {
+            throw new IllegalStateException("Bill has already been declined.");
+        }
+
+        invoice.setPaymentStatus(Invoice.PaymentStatus.DECLINED);
+        invoice.setPaidAt(null);
+        if (invoice.getShipments() != null) {
+            invoice.getShipments().forEach(shipment -> {
+                if (shipment.getStatus() != Shipment.ShipmentStatus.DELIVERED) {
+                    shipment.setStatus(Shipment.ShipmentStatus.DECLINED);
+                    shipment.setDeliveredAt(null);
+                    shipmentRepository.save(shipment);
+                }
+            });
+        }
         return invoiceRepository.save(invoice);
     }
 

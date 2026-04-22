@@ -68,6 +68,23 @@ public class PharmacistController {
         return "redirect:/dashboard/pharmacist";
     }
 
+    @PostMapping("/pharmacist/decline-order")
+    public String declineOrder(
+            @RequestParam("orderId") Long orderId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            pharmacistService.declineOrder(orderId);
+            redirectAttributes.addFlashAttribute("successMessage", "Order declined successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            logger.error("Unexpected decline failure for orderId={}", orderId, ex);
+            redirectAttributes.addFlashAttribute("errorMessage", "Unexpected decline error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage());
+        }
+        return "redirect:/dashboard/pharmacist";
+    }
+
     @PostMapping("/pharmacist/update-inventory")
     public String updateInventory(
             @RequestParam("medicineId") Long medicineId,

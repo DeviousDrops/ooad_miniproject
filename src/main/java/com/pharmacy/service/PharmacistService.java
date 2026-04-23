@@ -3,27 +3,38 @@ package com.pharmacy.service;
 import com.pharmacy.model.Bill;
 import com.pharmacy.model.Customer;
 import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Order;
+import com.pharmacy.repository.BillRepository;
 import com.pharmacy.repository.CustomerRepository;
 import com.pharmacy.repository.MedicineRepository;
+import com.pharmacy.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service("portalPharmacistService")
 public class PharmacistService {
 
     private final MedicineRepository medicineRepository;
     private final CustomerRepository customerRepository;
+    private final BillRepository billRepository;
+    private final OrderRepository orderRepository;
     private final BillingFacade billingFacade;
     private final InventoryObserver inventoryObserver;
 
     public PharmacistService(
             MedicineRepository medicineRepository,
             CustomerRepository customerRepository,
+            BillRepository billRepository,
+            OrderRepository orderRepository,
             BillingFacade billingFacade,
             InventoryObserver inventoryObserver
     ) {
         this.medicineRepository = medicineRepository;
         this.customerRepository = customerRepository;
+        this.billRepository = billRepository;
+        this.orderRepository = orderRepository;
         this.billingFacade = billingFacade;
         this.inventoryObserver = inventoryObserver;
     }
@@ -40,10 +51,33 @@ public class PharmacistService {
         return billingFacade.processCustomerBilling(orderId);
     }
 
+    @Transactional
+    public Order declineOrder(long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        if (order.getStatus() != Order.OrderStatus.CREATED) {
+            throw new IllegalStateException("Only pending orders can be declined");
+        }
+
+        order.setStatus(Order.OrderStatus.DECLINED);
+        return orderRepository.saveAndFlush(order);
+    }
+
     @Transactional(readOnly = true)
-    public float applyLoyaltyDiscount(long customerId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerId));
+    public List<Order> findUnprocessedOrders() {
+        return orderRepository.findByStatusOrderByOrderedAtAsc(Order.OrderStatus.CREATED);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Bill> findProcessedBills() {
+        return billRepository.findAllByOrderByGeneratedAtDesc();
+    }
+
+    @Transactional(readOnly = true)
+    public float applyLoyaltyDiscount(String customerPhone) {
+        Customer customer = customerRepository.findByPhone(customerPhone)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerPhone));
 
         int loyalty = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
         if (loyalty >= 200) {

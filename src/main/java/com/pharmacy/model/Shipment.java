@@ -1,5 +1,6 @@
 package com.pharmacy.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,15 +27,22 @@ public class Shipment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id", nullable = false)
+    @JsonIgnore
     private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "inventory_id", nullable = false)
+    @JsonIgnore
     private Inventory inventory;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medicine_id", nullable = false)
     private Medicine medicine;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invoice_id")
+    @JsonIgnore
+    private Invoice invoice;
 
     @Column(nullable = false)
     private Integer quantity;
@@ -42,7 +50,7 @@ public class Shipment {
     @Column(nullable = false)
     private LocalDate expectedDate;
 
-    private LocalDateTime verifiedAt;
+    private LocalDateTime deliveredAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -51,22 +59,24 @@ public class Shipment {
     @PrePersist
     void onCreate() {
         if (status == null) {
-            status = ShipmentStatus.PENDING;
+            status = ShipmentStatus.IN_TRANSIT;
         }
     }
 
-    public boolean verifyShipment() {
-        if (status == ShipmentStatus.VERIFIED) {
+    public boolean markDelivered() {
+        if (status == ShipmentStatus.DELIVERED) {
             return true;
         }
-        status = ShipmentStatus.VERIFIED;
-        verifiedAt = LocalDateTime.now();
+        status = ShipmentStatus.DELIVERED;
+        deliveredAt = LocalDateTime.now();
         return true;
     }
 
     public enum ShipmentStatus {
-        PENDING,
-        VERIFIED
+        IN_TRANSIT,
+        DELIVERED,
+        CANCELLED,
+        DECLINED
     }
 
     public Long getShipmentId() {
@@ -101,6 +111,14 @@ public class Shipment {
         this.medicine = medicine;
     }
 
+    public Invoice getInvoice() {
+        return invoice;
+    }
+
+    public void setInvoice(Invoice invoice) {
+        this.invoice = invoice;
+    }
+
     public Integer getQuantity() {
         return quantity;
     }
@@ -117,12 +135,12 @@ public class Shipment {
         this.expectedDate = expectedDate;
     }
 
-    public LocalDateTime getVerifiedAt() {
-        return verifiedAt;
+    public LocalDateTime getDeliveredAt() {
+        return deliveredAt;
     }
 
-    public void setVerifiedAt(LocalDateTime verifiedAt) {
-        this.verifiedAt = verifiedAt;
+    public void setDeliveredAt(LocalDateTime deliveredAt) {
+        this.deliveredAt = deliveredAt;
     }
 
     public ShipmentStatus getStatus() {

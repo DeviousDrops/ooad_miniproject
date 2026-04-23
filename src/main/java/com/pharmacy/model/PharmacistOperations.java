@@ -7,7 +7,7 @@ public interface PharmacistOperations {
 
     Bill processCustomerBilling(long orderId);
 
-    float applyLoyaltyDiscount(long customerId);
+    float applyLoyaltyDiscount(String customerPhone);
 
     void updateInventoryStatus(long medicineId, int qty);
 }

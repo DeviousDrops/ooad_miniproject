@@ -10,9 +10,9 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,25 +38,29 @@ public class CustomerController {
     }
 
     @PostMapping("/place-order")
-    public Order placeOrder(@Valid @RequestBody PlaceOrderRequest request) {
+    public Order placeOrder(@Valid @RequestBody PlaceOrderRequest request, Authentication authentication) {
         List<BillingService.OrderLineCommand> lines = request.items().stream()
                 .map(item -> new BillingService.OrderLineCommand(item.medicineId(), item.quantity()))
                 .toList();
-        return customerService.placeOrder(request.customerId(), lines);
+        return customerService.placeOrder(authentication.getName(), lines);
     }
 
-    @GetMapping("/prescriptions/{customerId}")
-    public List<Prescription> prescriptions(@PathVariable("customerId") Long customerId) {
-        return customerService.viewPrescriptionHistory(customerId);
+    @GetMapping("/orders")
+    public List<Order> orders(Authentication authentication) {
+        return customerService.viewOrderHistory(authentication.getName());
     }
 
-    @GetMapping("/bills/{customerId}")
-    public List<Bill> billHistory(@PathVariable("customerId") Long customerId) {
-        return customerService.viewBillHistory(customerId);
+    @GetMapping("/prescriptions")
+    public List<Prescription> prescriptions(Authentication authentication) {
+        return customerService.viewPrescriptionHistory(authentication.getName());
+    }
+
+    @GetMapping("/bills")
+    public List<Bill> billHistory(Authentication authentication) {
+        return customerService.viewBillHistory(authentication.getName());
     }
 
     public record PlaceOrderRequest(
-            @NotNull Long customerId,
             @NotEmpty List<@Valid OrderLineItemRequest> items
     ) {
     }

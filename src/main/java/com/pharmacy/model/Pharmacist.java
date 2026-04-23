@@ -30,8 +30,8 @@ public class Pharmacist extends User implements PharmacistOperations {
     }
 
     @Override
-    public float applyLoyaltyDiscount(long customerId) {
-        return customerId > 0 ? 5.0f : 0.0f;
+    public float applyLoyaltyDiscount(String customerPhone) {
+        return customerPhone == null || customerPhone.isBlank() ? 0.0f : 5.0f;
     }
 
     @Override

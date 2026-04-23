@@ -30,7 +30,7 @@ public abstract class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false, unique = true, length = 15)
+    @Column(nullable = false, unique = true, length = 10)
     private String phone;
 
     @Column(nullable = false)

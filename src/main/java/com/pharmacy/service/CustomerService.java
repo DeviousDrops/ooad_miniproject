@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 
 @Service("portalCustomerService")
@@ -49,13 +50,46 @@ public class CustomerService {
         return medicineRepository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase(keyword, keyword);
     }
 
+    @Transactional(readOnly = true)
+    public List<Medicine> searchMedicines(String searchBy, String selectedValue) {
+        if (selectedValue == null || selectedValue.isBlank()) {
+            return medicineRepository.findAll();
+        }
+
+        if ("CATEGORY".equalsIgnoreCase(searchBy)) {
+            return medicineRepository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase("", selectedValue);
+        }
+
+        return medicineRepository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase(selectedValue, "");
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> availableMedicineNames() {
+        return medicineRepository.findAll().stream()
+                .map(Medicine::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> availableMedicineCategories() {
+        return medicineRepository.findAll().stream()
+                .map(Medicine::getCategory)
+                .filter(category -> category != null && !category.isBlank())
+                .distinct()
+                .sorted(Comparator.naturalOrder())
+                .toList();
+    }
+
     @Transactional
-    public Order placeOrder(Long customerId, List<OrderRequestItem> items) {
+    public Order placeOrder(String customerPhone, List<OrderRequestItem> items) {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Order requires at least one medicine");
         }
 
-        Customer customer = resolveCustomer(customerId);
+        Customer customer = resolveCustomer(customerPhone);
 
         Order order = new Order();
         order.setCustomer(customer);
@@ -85,9 +119,15 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<Prescription> viewPrescriptionHistory(Long customerId) {
-        Customer customer = resolveCustomer(customerId);
-        return prescriptionRepository.findByCustomerUserId(customer.getUserId());
+    public List<Order> viewOrderHistory(String customerPhone) {
+        Customer customer = resolveCustomer(customerPhone);
+        return orderRepository.findByCustomerPhoneOrderByOrderedAtDesc(customer.getPhone());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Prescription> viewPrescriptionHistory(String customerPhone) {
+        Customer customer = resolveCustomer(customerPhone);
+        return prescriptionRepository.findByCustomerPhone(customer.getPhone());
     }
 
     @Transactional
@@ -96,27 +136,40 @@ public class CustomerService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.pharmacy.model.Bill> viewBillHistory(Long customerId) {
-        Customer customer = resolveCustomer(customerId);
-        return billingFacade.customerBillHistory(customer.getUserId());
+    public List<com.pharmacy.model.Bill> viewBillHistory(String customerPhone) {
+        Customer customer = resolveCustomer(customerPhone);
+        return billingFacade.customerBillHistory(customer.getPhone());
     }
 
-    @Transactional(readOnly = true)
-    public Long defaultCustomerReference() {
-        return customerRepository.findAll().stream()
-                .findFirst()
-                .map(customer -> customer.getCustomerId() != null ? customer.getCustomerId() : customer.getUserId())
-                .orElse(1L);
-    }
-
-    private Customer resolveCustomer(Long customerRef) {
-        if (customerRef == null) {
-            throw new IllegalArgumentException("Customer id is required");
+    @Transactional
+    public Order cancelOrder(String customerPhone, Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("Invalid order ID");
         }
 
-        return customerRepository.findById(customerRef)
-                .or(() -> customerRepository.findByCustomerId(customerRef))
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerRef));
+        Customer customer = resolveCustomer(customerPhone);
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+        if (order.getCustomer() == null || !customer.getPhone().equals(order.getCustomer().getPhone())) {
+            throw new IllegalStateException("You can only cancel your own orders");
+        }
+
+        if (order.getStatus() != Order.OrderStatus.CREATED) {
+            throw new IllegalStateException("Only pending orders can be cancelled");
+        }
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        return orderRepository.save(order);
+    }
+
+    private Customer resolveCustomer(String customerPhone) {
+        if (customerPhone == null || customerPhone.isBlank()) {
+            throw new IllegalArgumentException("Customer phone is required");
+        }
+
+        return customerRepository.findByPhone(customerPhone)
+                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerPhone));
     }
 
     public record OrderRequestItem(Long medicineId, Integer quantity) {

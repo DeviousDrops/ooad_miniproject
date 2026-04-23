@@ -1,19 +1,18 @@
 package com.pharmacy.security;
 
+import com.pharmacy.repository.CustomerRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
@@ -31,7 +30,7 @@ public class SecurityConfig {
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/login", "/css/**").permitAll()
+                        .requestMatchers("/", "/login", "/register", "/css/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/dashboard/admin", "/admin/**").hasRole("ADMIN")
@@ -53,8 +52,7 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
-                )
-                .httpBasic(Customizer.withDefaults());
+                );
 
         return http.build();
     }
@@ -93,27 +91,46 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails admin = User.withUsername("admin")
+        public UserDetailsService userDetailsService(CustomerRepository customerRepository) {
+        return username -> {
+            String normalizedUsername = username == null ? "" : username.trim();
+
+            if ("admin".equals(normalizedUsername)) {
+            return User.withUsername("admin")
                 .password("{noop}admin123")
                 .roles("ADMIN")
                 .build();
+            }
 
-        UserDetails pharmacist = User.withUsername("pharmacist")
+            if ("pharmacist".equals(normalizedUsername)) {
+            return User.withUsername("pharmacist")
                 .password("{noop}pharma123")
                 .roles("PHARMACIST")
                 .build();
+            }
 
-        UserDetails customer = User.withUsername("customer")
-                .password("{noop}customer123")
-                .roles("CUSTOMER")
-                .build();
-
-        UserDetails supplier = User.withUsername("supplier")
+            if ("supplier".equals(normalizedUsername)) {
+            return User.withUsername("supplier")
                 .password("{noop}supplier123")
                 .roles("SUPPLIER")
                 .build();
+            }
 
-        return new InMemoryUserDetailsManager(admin, pharmacist, customer, supplier);
+            return customerRepository.findByPhone(normalizedUsername)
+                    .map(customer -> User.withUsername(customer.getPhone())
+                            .password(customer.getPassword() != null && customer.getPassword().startsWith("{")
+                                    ? customer.getPassword()
+                                    : "{noop}" + customer.getPassword())
+                            .roles("CUSTOMER")
+                            .build())
+                    .or(() -> customerRepository.findFirstByNameIgnoreCase(normalizedUsername)
+                        .map(customer -> User.withUsername(customer.getPhone())
+                            .password(customer.getPassword() != null && customer.getPassword().startsWith("{")
+                                ? customer.getPassword()
+                                : "{noop}" + customer.getPassword())
+                            .roles("CUSTOMER")
+                            .build()))
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalizedUsername));
+        };
     }
 }

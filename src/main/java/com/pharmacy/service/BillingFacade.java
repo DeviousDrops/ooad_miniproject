@@ -51,11 +51,29 @@ public class BillingFacade {
     // Facade Pattern: this single method orchestrates stock verification, bill generation and inventory updates.
     @Transactional
     public Bill processCustomerBilling(Long orderId) {
+        if (orderId == null || orderId <= 0) {
+            throw new IllegalArgumentException("Invalid order ID: " + orderId);
+        }
+
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+                .orElseThrow(() -> new IllegalArgumentException("Order not found with ID: " + orderId));
+
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            throw new IllegalStateException("Cannot process billing for order with no items");
+        }
+
+        if (billRepository.existsByOrderOrderId(orderId)
+                || order.getStatus() == Order.OrderStatus.BILLED
+                || order.getStatus() == Order.OrderStatus.PAID) {
+            throw new IllegalStateException("Order already processed for billing: " + orderId);
+        }
+
+        if (order.getStatus() == Order.OrderStatus.CANCELLED || order.getStatus() == Order.OrderStatus.DECLINED) {
+            throw new IllegalStateException("Cancelled or declined orders cannot be billed");
+        }
 
         if (!verifyStockAvailability(order)) {
-            throw new IllegalStateException("Insufficient stock for one or more medicines");
+            throw new IllegalStateException("Insufficient stock for one or more medicines in this order");
         }
 
         BigDecimal discount = resolveDiscount(order.getCustomer());
@@ -63,17 +81,21 @@ public class BillingFacade {
 
         for (OrderItem item : order.getItems()) {
             Medicine medicine = item.getMedicine();
+            if (medicine == null) {
+                throw new IllegalStateException("Order item references a null medicine");
+            }
             medicine.reduceStock(item.getQuantity());
             medicineRepository.save(medicine);
             inventoryObserver.checkLowStock(medicine);
         }
 
-        order.setBill(bill);
         order.calculateTotal();
         order.setStatus(Order.OrderStatus.BILLED);
         orderRepository.save(order);
 
-        return billRepository.save(bill);
+        Bill savedBill = billRepository.save(bill);
+        order.setBill(savedBill);
+        return savedBill;
     }
 
     @Transactional
@@ -105,12 +127,17 @@ public class BillingFacade {
 
     @Transactional(readOnly = true)
     public boolean verifyStockAvailability(Order order) {
-        return order.getItems().stream().allMatch(item -> item.getMedicine().getStockQty() >= item.getQuantity());
+        return order.getItems().stream().allMatch(item ->
+                item.getMedicine() != null
+                        && item.getMedicine().getStockQty() != null
+                        && item.getQuantity() != null
+                        && item.getMedicine().getStockQty() >= item.getQuantity()
+        );
     }
 
     @Transactional(readOnly = true)
-    public List<Bill> customerBillHistory(Long customerId) {
-        return billRepository.findByOrderCustomerUserId(customerId);
+    public List<Bill> customerBillHistory(String customerPhone) {
+        return billRepository.findByOrderCustomerPhoneOrderByGeneratedAtDesc(customerPhone);
     }
 
     private BigDecimal resolveDiscount(Customer customer) {

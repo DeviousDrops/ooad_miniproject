@@ -3,7 +3,6 @@ package com.pharmacy.service;
 import com.pharmacy.model.Bill;
 import com.pharmacy.model.Invoice;
 import com.pharmacy.model.Order;
-import com.pharmacy.model.Shipment;
 import com.pharmacy.model.Supplier;
 import org.springframework.stereotype.Component;
 
@@ -31,11 +30,9 @@ public class BillFactory {
         return bill;
     }
 
-    // Factory Pattern: the same factory can construct supplier invoices consistently.
-    public Invoice createInvoice(Supplier supplier, Shipment shipment, BigDecimal amount) {
+    public Invoice createInvoice(Supplier supplier, BigDecimal amount) {
         Invoice invoice = new Invoice();
         invoice.setSupplier(supplier);
-        invoice.setShipment(shipment);
         invoice.setAmount(amount);
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
         invoice.setInvoiceDate(LocalDateTime.now());

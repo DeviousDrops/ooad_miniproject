@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Controller("webSupplierController")
 @PreAuthorize("hasRole('SUPPLIER')")
@@ -28,49 +28,68 @@ public class SupplierController {
 
     @GetMapping("/dashboard/supplier")
     public String supplierDashboard(Model model) {
+        model.addAttribute("medicines", supplierService.listMedicines());
         model.addAttribute("shipments", supplierService.listShipments());
+        model.addAttribute("invoices", supplierService.listInvoices());
+        model.addAttribute("defaultSupplierId", supplierService.defaultSupplierId());
         return "dashboard/supplier";
-    }
-
-    @PostMapping("/supplier/restock")
-    public String supplyRestock(
-            @RequestParam("supplierId") Long supplierId,
-            @RequestParam("medicineId") Long medicineId,
-            @RequestParam("quantity") Integer quantity,
-            @RequestParam("expectedDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedDate,
-            RedirectAttributes redirectAttributes
-    ) {
-        Shipment shipment = supplierService.supplyRestock(supplierId, medicineId, quantity, expectedDate);
-        redirectAttributes.addFlashAttribute("successMessage", "Restock shipment created. ID: " + shipment.getShipmentId());
-        return "redirect:/dashboard/supplier";
-    }
-
-    @PostMapping("/supplier/verify-shipment")
-    public String verifyShipment(
-            @RequestParam("shipmentId") Long shipmentId,
-            RedirectAttributes redirectAttributes
-    ) {
-        boolean verified = supplierService.shipmentVerification(shipmentId);
-        redirectAttributes.addFlashAttribute("infoMessage", verified
-                ? "Shipment verified successfully."
-                : "Shipment verification failed.");
-        return "redirect:/dashboard/supplier";
     }
 
     @PostMapping("/supplier/invoice")
     public String submitInvoice(
-            @RequestParam("shipmentId") Long shipmentId,
-            @RequestParam("amount") BigDecimal amount,
+            @RequestParam("supplierId") Long supplierId,
+            @RequestParam("medicineId") List<Long> medicineIds,
+            @RequestParam("quantity") List<Integer> quantities,
+            @RequestParam("expectedDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedDate,
             RedirectAttributes redirectAttributes
     ) {
-        Invoice invoice = supplierService.submitDigitalInvoice(shipmentId, amount);
-        redirectAttributes.addFlashAttribute("successMessage", "Invoice submitted. ID: " + invoice.getInvoiceId());
+        try {
+            Invoice invoice = supplierService.generateSupplierBill(supplierId, medicineIds, quantities, expectedDate);
+            redirectAttributes.addFlashAttribute("successMessage", "Bill generated successfully. ID: " + invoice.getInvoiceId());
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to generate bill. Please verify medicine selections and quantities.");
+        }
+        return "redirect:/dashboard/supplier";
+    }
+
+    @PostMapping("/supplier/shipments/status")
+    public String updateShipmentStatus(
+            @RequestParam("shipmentId") Long shipmentId,
+            @RequestParam("status") Shipment.ShipmentStatus status,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            supplierService.updateShipmentStatus(shipmentId, status);
+            redirectAttributes.addFlashAttribute("successMessage", "Delivery status updated successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to update shipment status. Please verify shipment ID and status.");
+        }
+        return "redirect:/dashboard/supplier";
+    }
+
+    @PostMapping("/supplier/invoice/cancel")
+    public String cancelInvoice(
+            @RequestParam("invoiceId") Long invoiceId,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            supplierService.cancelInvoice(invoiceId);
+            redirectAttributes.addFlashAttribute("successMessage", "Bill cancelled successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to cancel bill. Please verify bill ID.");
+        }
         return "redirect:/dashboard/supplier";
     }
 
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public String handleSupplierFlowErrors(RuntimeException ex, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("infoMessage", ex.getMessage());
+        redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         return "redirect:/dashboard/supplier";
     }
 }

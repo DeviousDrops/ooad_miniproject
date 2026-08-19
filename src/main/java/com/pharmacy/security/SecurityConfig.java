@@ -1,6 +1,6 @@
 package com.pharmacy.security;
 
-import com.pharmacy.repository.CustomerRepository;
+import com.pharmacy.repository.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,6 +13,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
@@ -32,16 +34,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/login", "/register", "/css/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/dashboard/admin", "/admin/**").hasRole("ADMIN")
                         .requestMatchers("/dashboard/pharmacist", "/pharmacist/**").hasRole("PHARMACIST")
                         .requestMatchers("/dashboard/customer", "/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/dashboard/supplier", "/supplier/**").hasRole("SUPPLIER")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/pharmacist/**").hasAnyRole("ADMIN", "PHARMACIST")
-                        .requestMatchers("/api/customer/**").hasAnyRole("ADMIN", "CUSTOMER")
-                        .requestMatchers("/api/supplier/**").hasAnyRole("ADMIN", "SUPPLIER")
-                        .requestMatchers("/api/billing/**", "/api/inventory/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -55,6 +51,11 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean
@@ -90,46 +91,16 @@ public class SecurityConfig {
         };
     }
 
+    // Unified auth: every role resolves through the same DB-backed User hierarchy.
     @Bean
-        public UserDetailsService userDetailsService(CustomerRepository customerRepository) {
+    public UserDetailsService userDetailsService(UserRepository userRepository) {
         return username -> {
             String normalizedUsername = username == null ? "" : username.trim();
-
-            if ("admin".equals(normalizedUsername)) {
-            return User.withUsername("admin")
-                .password("{noop}admin123")
-                .roles("ADMIN")
-                .build();
-            }
-
-            if ("pharmacist".equals(normalizedUsername)) {
-            return User.withUsername("pharmacist")
-                .password("{noop}pharma123")
-                .roles("PHARMACIST")
-                .build();
-            }
-
-            if ("supplier".equals(normalizedUsername)) {
-            return User.withUsername("supplier")
-                .password("{noop}supplier123")
-                .roles("SUPPLIER")
-                .build();
-            }
-
-            return customerRepository.findByPhone(normalizedUsername)
-                    .map(customer -> User.withUsername(customer.getPhone())
-                            .password(customer.getPassword() != null && customer.getPassword().startsWith("{")
-                                    ? customer.getPassword()
-                                    : "{noop}" + customer.getPassword())
-                            .roles("CUSTOMER")
+            return userRepository.findByUsername(normalizedUsername)
+                    .map(user -> User.withUsername(user.getUsername())
+                            .password(user.getPassword())
+                            .roles(user.roleName())
                             .build())
-                    .or(() -> customerRepository.findFirstByNameIgnoreCase(normalizedUsername)
-                        .map(customer -> User.withUsername(customer.getPhone())
-                            .password(customer.getPassword() != null && customer.getPassword().startsWith("{")
-                                ? customer.getPassword()
-                                : "{noop}" + customer.getPassword())
-                            .roles("CUSTOMER")
-                            .build()))
                     .orElseThrow(() -> new UsernameNotFoundException("User not found: " + normalizedUsername));
         };
     }

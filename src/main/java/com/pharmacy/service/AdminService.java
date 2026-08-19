@@ -1,17 +1,18 @@
 package com.pharmacy.service;
 
 import com.pharmacy.model.Bill;
-import com.pharmacy.model.Inventory;
 import com.pharmacy.model.Invoice;
 import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Report;
 import com.pharmacy.model.Shipment;
 import com.pharmacy.repository.BillRepository;
-import com.pharmacy.repository.InventoryRepository;
 import com.pharmacy.repository.InvoiceRepository;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.repository.ReportRepository;
 import com.pharmacy.repository.ShipmentRepository;
+import com.pharmacy.pattern.factory.MedicineFactorySelector;
+import com.pharmacy.pattern.observer.AdminAlertObserver;
+import com.pharmacy.pattern.observer.InventoryAlertSubject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,67 +32,81 @@ public class AdminService {
     private static final Logger log = LoggerFactory.getLogger(AdminService.class);
 
     private final MedicineRepository medicineRepository;
-    private final InventoryRepository inventoryRepository;
     private final BillRepository billRepository;
     private final InvoiceRepository invoiceRepository;
     private final ShipmentRepository shipmentRepository;
     private final ReportRepository reportRepository;
-    private final InventoryObserver inventoryObserver;
+    private final InventoryAlertSubject inventoryAlertSubject;
+    private final AdminAlertObserver adminAlertObserver;
+    private final MedicineFactorySelector medicineFactorySelector;
 
     private final List<String> automatedActions = new ArrayList<>();
 
     public AdminService(
             MedicineRepository medicineRepository,
-            InventoryRepository inventoryRepository,
             BillRepository billRepository,
             InvoiceRepository invoiceRepository,
             ShipmentRepository shipmentRepository,
             ReportRepository reportRepository,
-            InventoryObserver inventoryObserver
+            InventoryAlertSubject inventoryAlertSubject,
+            AdminAlertObserver adminAlertObserver,
+            MedicineFactorySelector medicineFactorySelector
     ) {
         this.medicineRepository = medicineRepository;
-        this.inventoryRepository = inventoryRepository;
         this.billRepository = billRepository;
         this.invoiceRepository = invoiceRepository;
         this.shipmentRepository = shipmentRepository;
         this.reportRepository = reportRepository;
-        this.inventoryObserver = inventoryObserver;
+        this.inventoryAlertSubject = inventoryAlertSubject;
+        this.adminAlertObserver = adminAlertObserver;
+        this.medicineFactorySelector = medicineFactorySelector;
+    }
+
+    // Factory Method: the concrete Medicine subclass is resolved once, at creation, and never changes.
+    @Transactional
+    public Medicine createMedicine(
+            String medicineType,
+            String name,
+            String category,
+            String manufacturer,
+            java.math.BigDecimal price,
+            Integer stockQty,
+            java.time.LocalDate expiryDate,
+            Integer lowStockThreshold
+    ) {
+        Medicine medicine = medicineFactorySelector.byType(medicineType)
+                .createMedicine(name, category, price, stockQty, expiryDate, lowStockThreshold);
+        medicine.setManufacturer(manufacturer);
+
+        Medicine saved = medicineRepository.save(medicine);
+        inventoryAlertSubject.notifyLowStockOrExpiry(saved);
+        return saved;
     }
 
     @Transactional
-    public Medicine manageMedicineInventory(Medicine medicine, Long inventoryId) {
-        Inventory inventory = resolveInventory(inventoryId);
-        Medicine target = medicine.getMedicineId() == null
-                ? medicine
-                : medicineRepository.findById(medicine.getMedicineId())
-                        .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicine.getMedicineId()));
+    public Medicine updateMedicine(
+            Long medicineId,
+            String name,
+            String category,
+            String manufacturer,
+            java.math.BigDecimal price,
+            Integer stockQty,
+            java.time.LocalDate expiryDate,
+            Integer lowStockThreshold
+    ) {
+        Medicine target = medicineRepository.findById(medicineId)
+                .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineId));
 
-        Inventory previousInventory = target.getInventory();
-        target.setName(medicine.getName());
-        target.setCategory(medicine.getCategory());
-        target.setManufacturer(medicine.getManufacturer());
-        target.setPrice(medicine.getPrice());
-        target.setStockQty(medicine.getStockQty());
-        target.setExpiryDate(medicine.getExpiryDate());
-        target.setLowStockThreshold(medicine.getLowStockThreshold());
-        if (medicine.getMedicineType() != null) {
-            target.setMedicineType(medicine.getMedicineType());
-        } else if (target.getMedicineType() == null) {
-            target.setMedicineType(Medicine.MedicineType.OTHER);
-        }
-        target.setInventory(inventory);
-
-        if (target.getLowStockThreshold() == null || target.getLowStockThreshold() < 1) {
-            target.setLowStockThreshold(InventoryObserver.LOW_STOCK_THRESHOLD);
-        }
-        if (target.getStockQty() == null) {
-            target.setStockQty(0);
-        }
+        target.setName(name);
+        target.setCategory(category);
+        target.setManufacturer(manufacturer);
+        target.setPrice(price);
+        target.setStockQty(stockQty == null ? 0 : stockQty);
+        target.setExpiryDate(expiryDate);
+        target.setLowStockThreshold(lowStockThreshold == null || lowStockThreshold < 1 ? 10 : lowStockThreshold);
 
         Medicine saved = medicineRepository.save(target);
-        syncInventory(previousInventory);
-        syncInventory(inventory);
-        inventoryObserver.checkLowStock(saved);
+        inventoryAlertSubject.notifyLowStockOrExpiry(saved);
         return saved;
     }
 
@@ -99,9 +114,7 @@ public class AdminService {
     public void deleteMedicine(Long medicineId) {
         Medicine medicine = medicineRepository.findById(medicineId)
                 .orElseThrow(() -> new IllegalArgumentException("Medicine not found: " + medicineId));
-        Inventory inventory = medicine.getInventory();
         medicineRepository.delete(medicine);
-        syncInventory(inventory);
     }
 
     @Transactional(readOnly = true)
@@ -121,16 +134,13 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<String> currentLowStockAlerts() {
-        return medicineRepository.findAll().stream()
-                .filter(medicine -> medicine.getStockQty() != null && medicine.getStockQty() <= InventoryObserver.LOW_STOCK_THRESHOLD)
-                .map(medicine -> "Low stock alert for " + medicine.getName() + " (qty=" + medicine.getStockQty() + ")")
-                .toList();
+        return adminAlertObserver.latestAlerts();
     }
 
     @Transactional
     public Report generateInventoryReport() {
         List<Medicine> medicines = medicineRepository.findAll();
-        long lowStock = medicines.stream().filter(medicine -> medicine.getStockQty() <= InventoryObserver.LOW_STOCK_THRESHOLD).count();
+        long lowStock = medicines.stream().filter(Medicine::isLowStock).count();
 
         Report report = new Report();
         report.setReportType(Report.ReportType.INVENTORY);
@@ -175,7 +185,7 @@ public class AdminService {
             medicine.reduceStock(Math.abs(qtyDelta));
         }
         medicineRepository.save(medicine);
-        inventoryObserver.checkLowStock(medicine);
+        inventoryAlertSubject.notifyLowStockOrExpiry(medicine);
     }
 
     @Transactional
@@ -226,7 +236,7 @@ public class AdminService {
     @Scheduled(fixedDelay = 60000)
     @Transactional(readOnly = true)
     public void automateMedicineSupply() {
-        List<String> alerts = inventoryObserver.latestAlerts();
+        List<String> alerts = adminAlertObserver.latestAlerts();
         if (alerts.isEmpty()) {
             return;
         }
@@ -247,26 +257,4 @@ public class AdminService {
         }
     }
 
-    private Inventory resolveInventory(Long inventoryId) {
-        if (inventoryId != null) {
-            return inventoryRepository.findById(inventoryId)
-                    .orElseThrow(() -> new IllegalArgumentException("Inventory not found: " + inventoryId));
-        }
-        return inventoryRepository.findAll().stream().findFirst()
-                .orElseGet(() -> inventoryRepository.save(new Inventory()));
-    }
-
-    private void syncInventory(Inventory inventory) {
-        if (inventory == null || inventory.getInventoryId() == null) {
-            return;
-        }
-        int totalQuantity = medicineRepository.findByInventory_InventoryId(inventory.getInventoryId()).stream()
-                .map(Medicine::getStockQty)
-                .filter(qty -> qty != null)
-                .mapToInt(Integer::intValue)
-                .sum();
-        inventory.setQuantity(totalQuantity);
-        inventory.touch();
-        inventoryRepository.save(inventory);
-    }
 }

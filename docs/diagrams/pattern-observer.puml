@@ -1,0 +1,40 @@
+@startuml pattern-observer
+skinparam classAttributeIconSize 0
+
+class InventoryAlertSubject {
+  -observers: List<InventoryObserver>
+  +notifyLowStockOrExpiry(medicine: Medicine)
+}
+
+interface InventoryObserver {
+  +onInventoryAlert(medicine: Medicine, message: String)
+}
+
+class AdminAlertObserver {
+  -alerts: List<String>
+  +onInventoryAlert(medicine: Medicine, message: String)
+  +latestAlerts(): List<String>
+}
+
+InventoryAlertSubject o-- "0..*" InventoryObserver : notifies
+AdminAlertObserver ..|> InventoryObserver
+
+class AdminService
+class BillingFacade
+class PharmacistService
+
+AdminService --> InventoryAlertSubject : triggers on\ncreate/update medicine
+BillingFacade --> InventoryAlertSubject : triggers on\nstock deduction
+PharmacistService --> InventoryAlertSubject : triggers on\nmanual stock adjust
+
+AdminService --> AdminAlertObserver : reads latestAlerts()\nfor dashboard
+
+note bottom of InventoryAlertSubject
+  Subject checks Medicine.isLowStock() / isNearExpiry()
+  (polymorphic per Tablet/Syrup/GenericMedicine) and
+  pushes to every registered observer. Spring injects
+  all InventoryObserver beans into the List constructor
+  parameter, so adding an observer needs no wiring change.
+end note
+
+@enduml

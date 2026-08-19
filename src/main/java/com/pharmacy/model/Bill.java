@@ -37,9 +37,6 @@ public class Bill {
     private BigDecimal discountAmount;
 
     @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal discountApplied = BigDecimal.ZERO;
-
-    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total;
 
     @Column(nullable = false)
@@ -58,7 +55,6 @@ public class Bill {
         this.subtotal = sourceOrder == null ? BigDecimal.ZERO : sourceOrder.calculateSubtotal();
         this.taxAmount = BigDecimal.ZERO;
         this.discountAmount = BigDecimal.ZERO;
-        this.discountApplied = BigDecimal.ZERO;
         this.total = subtotal;
         return this;
     }
@@ -68,9 +64,8 @@ public class Bill {
             subtotal = BigDecimal.ZERO;
         }
         BigDecimal pct = BigDecimal.valueOf(Math.max(0.0d, percent)).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-        discountApplied = subtotal.multiply(pct).setScale(2, RoundingMode.HALF_UP);
-        discountAmount = discountApplied;
-        total = subtotal.subtract(discountApplied).add(taxAmount == null ? BigDecimal.ZERO : taxAmount).setScale(2, RoundingMode.HALF_UP);
+        discountAmount = subtotal.multiply(pct).setScale(2, RoundingMode.HALF_UP);
+        total = subtotal.subtract(discountAmount).add(taxAmount == null ? BigDecimal.ZERO : taxAmount).setScale(2, RoundingMode.HALF_UP);
     }
 
     public void printBill() {
@@ -115,14 +110,6 @@ public class Bill {
 
     public void setDiscountAmount(BigDecimal discountAmount) {
         this.discountAmount = discountAmount;
-    }
-
-    public BigDecimal getDiscountApplied() {
-        return discountApplied;
-    }
-
-    public void setDiscountApplied(BigDecimal discountApplied) {
-        this.discountApplied = discountApplied;
     }
 
     public BigDecimal getTotal() {

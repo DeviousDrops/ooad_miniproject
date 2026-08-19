@@ -1,6 +1,7 @@
 package com.pharmacy.pattern.factory;
 
 import com.pharmacy.model.Medicine;
+import com.pharmacy.model.Tablet;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -18,14 +19,13 @@ public class TabletMedicineFactory implements MedicineFactory {
             LocalDate expiryDate,
             Integer lowStockThreshold
     ) {
-        Medicine medicine = new Medicine();
+        Medicine medicine = new Tablet();
         medicine.setName(name);
         medicine.setCategory(category == null || category.isBlank() ? "Tablet" : category);
         medicine.setPrice(price);
         medicine.setStockQty(stockQty);
         medicine.setExpiryDate(expiryDate);
         medicine.setLowStockThreshold(lowStockThreshold);
-        medicine.setMedicineType(Medicine.MedicineType.TABLET);
         return medicine;
     }
 }

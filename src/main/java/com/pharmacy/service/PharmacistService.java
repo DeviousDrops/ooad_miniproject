@@ -1,11 +1,10 @@
 package com.pharmacy.service;
 
 import com.pharmacy.model.Bill;
-import com.pharmacy.model.Customer;
 import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Order;
+import com.pharmacy.pattern.observer.InventoryAlertSubject;
 import com.pharmacy.repository.BillRepository;
-import com.pharmacy.repository.CustomerRepository;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.repository.OrderRepository;
 import org.springframework.stereotype.Service;
@@ -17,26 +16,23 @@ import java.util.List;
 public class PharmacistService {
 
     private final MedicineRepository medicineRepository;
-    private final CustomerRepository customerRepository;
     private final BillRepository billRepository;
     private final OrderRepository orderRepository;
     private final BillingFacade billingFacade;
-    private final InventoryObserver inventoryObserver;
+    private final InventoryAlertSubject inventoryAlertSubject;
 
     public PharmacistService(
             MedicineRepository medicineRepository,
-            CustomerRepository customerRepository,
             BillRepository billRepository,
             OrderRepository orderRepository,
             BillingFacade billingFacade,
-            InventoryObserver inventoryObserver
+            InventoryAlertSubject inventoryAlertSubject
     ) {
         this.medicineRepository = medicineRepository;
-        this.customerRepository = customerRepository;
         this.billRepository = billRepository;
         this.orderRepository = orderRepository;
         this.billingFacade = billingFacade;
-        this.inventoryObserver = inventoryObserver;
+        this.inventoryAlertSubject = inventoryAlertSubject;
     }
 
     @Transactional(readOnly = true)
@@ -74,24 +70,6 @@ public class PharmacistService {
         return billRepository.findAllByOrderByGeneratedAtDesc();
     }
 
-    @Transactional(readOnly = true)
-    public float applyLoyaltyDiscount(String customerPhone) {
-        Customer customer = customerRepository.findByPhone(customerPhone)
-                .orElseThrow(() -> new IllegalArgumentException("Customer not found: " + customerPhone));
-
-        int loyalty = customer.getLoyaltyPoints() == null ? 0 : customer.getLoyaltyPoints();
-        if (loyalty >= 200) {
-            return 15.0f;
-        }
-        if (loyalty >= 100) {
-            return 10.0f;
-        }
-        if (loyalty >= 1) {
-            return 5.0f;
-        }
-        return 0.0f;
-    }
-
     @Transactional
     public void updateInventoryStatus(long medicineId, int qty) {
         Medicine medicine = medicineRepository.findById(medicineId)
@@ -103,6 +81,6 @@ public class PharmacistService {
             medicine.reduceStock(Math.abs(qty));
         }
         medicineRepository.save(medicine);
-        inventoryObserver.checkLowStock(medicine);
+        inventoryAlertSubject.notifyLowStockOrExpiry(medicine);
     }
 }

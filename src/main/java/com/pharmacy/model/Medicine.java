@@ -1,15 +1,13 @@
 package com.pharmacy.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -20,7 +18,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "app_medicines")
-public class Medicine {
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "medicine_type")
+public abstract class Medicine {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,20 +41,11 @@ public class Medicine {
     @Column(nullable = false)
     private Integer stockQty;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private MedicineType medicineType;
-
     @Column(nullable = false)
     private LocalDate expiryDate;
 
     @Column(nullable = false)
     private Integer lowStockThreshold;
-
-    @ManyToOne
-    @JoinColumn(name = "inventory_id")
-    @JsonIgnore
-    private Inventory inventory;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
@@ -94,19 +85,19 @@ public class Medicine {
         return stockQty <= lowStockThreshold;
     }
 
-    public boolean isNearExpiry(int days) {
-        return expiryDate != null && !expiryDate.isAfter(LocalDate.now().plusDays(days));
+    public boolean isNearExpiry() {
+        return expiryDate != null && !expiryDate.isAfter(LocalDate.now().plusDays(nearExpiryWindowDays()));
     }
 
     public boolean isExpired() {
         return expiryDate != null && expiryDate.isBefore(LocalDate.now());
     }
 
-    public enum MedicineType {
-        TABLET,
-        SYRUP,
-        OTHER
-    }
+    // Factory Method product hierarchy: each concrete medicine type owns its own expiry-alert
+    // window and unit of sale rather than branching on a type enum elsewhere in the codebase.
+    public abstract int nearExpiryWindowDays();
+
+    public abstract String unitOfSale();
 
     public Long getMedicineId() {
         return medicineId;
@@ -156,14 +147,6 @@ public class Medicine {
         this.stockQty = stockQty;
     }
 
-    public MedicineType getMedicineType() {
-        return medicineType;
-    }
-
-    public void setMedicineType(MedicineType medicineType) {
-        this.medicineType = medicineType;
-    }
-
     public LocalDate getExpiryDate() {
         return expiryDate;
     }
@@ -178,14 +161,6 @@ public class Medicine {
 
     public void setLowStockThreshold(Integer lowStockThreshold) {
         this.lowStockThreshold = lowStockThreshold;
-    }
-
-    public Inventory getInventory() {
-        return inventory;
-    }
-
-    public void setInventory(Inventory inventory) {
-        this.inventory = inventory;
     }
 
     public LocalDateTime getUpdatedAt() {

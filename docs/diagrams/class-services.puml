@@ -1,0 +1,85 @@
+@startuml class-services
+skinparam classAttributeIconSize 0
+left to right direction
+
+package controller {
+  class AdminController
+  class PharmacistController
+  class CustomerController
+  class SupplierController
+  class RegistrationController
+}
+
+package service {
+  class AdminService
+  class PharmacistService
+  class CustomerService
+  class SupplierService
+  class BillingFacade
+  class BillFactory
+}
+
+package "service.discount" {
+  interface DiscountStrategy
+  class DefaultDiscountStrategy
+  class LoyaltyDiscountStrategy
+}
+
+package "pattern.factory" {
+  interface MedicineFactory
+  class MedicineFactorySelector
+  class TabletMedicineFactory
+  class SyrupMedicineFactory
+  class GenericMedicineFactory
+}
+
+package "pattern.observer" {
+  interface InventoryObserver
+  class InventoryAlertSubject
+  class AdminAlertObserver
+}
+
+package repository {
+  interface OrderRepository
+  interface BillRepository
+  interface MedicineRepository
+  interface "... (14 repositories total)" as OtherRepos
+}
+
+AdminController --> AdminService
+PharmacistController --> PharmacistService
+CustomerController --> CustomerService
+SupplierController --> SupplierService
+RegistrationController --> repository.CustomerRepository : (register)
+
+AdminService --> MedicineFactorySelector
+AdminService --> InventoryAlertSubject
+AdminService --> AdminAlertObserver
+PharmacistService --> BillingFacade
+CustomerService --> BillingFacade
+
+BillingFacade --> BillFactory
+BillingFacade --> "0..*" DiscountStrategy : selects via
+BillingFacade --> InventoryAlertSubject
+BillingFacade --> OrderRepository
+BillingFacade --> BillRepository
+BillingFacade --> MedicineRepository
+
+DefaultDiscountStrategy ..|> DiscountStrategy
+LoyaltyDiscountStrategy ..|> DiscountStrategy
+
+MedicineFactorySelector --> MedicineFactory
+TabletMedicineFactory ..|> MedicineFactory
+SyrupMedicineFactory ..|> MedicineFactory
+GenericMedicineFactory ..|> MedicineFactory
+
+InventoryAlertSubject --> "0..*" InventoryObserver : notifies
+AdminAlertObserver ..|> InventoryObserver
+
+note right of BillingFacade
+  Facade: single @Transactional entry point
+  for order verification, bill generation,
+  stock deduction and payment processing.
+end note
+
+@enduml

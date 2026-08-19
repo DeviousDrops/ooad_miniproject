@@ -35,9 +35,6 @@ public class Prescription {
     @Column(nullable = false)
     private String dosage;
 
-    @Column
-    private LocalDateTime dateIssued;
-
     @Column(nullable = false)
     private LocalDateTime prescribedAt;
 
@@ -46,7 +43,6 @@ public class Prescription {
     @PrePersist
     void onCreate() {
         prescribedAt = LocalDateTime.now();
-        dateIssued = prescribedAt;
     }
 
     public boolean validatePrescription() {
@@ -91,14 +87,6 @@ public class Prescription {
 
     public void setDosage(String dosage) {
         this.dosage = dosage;
-    }
-
-    public LocalDateTime getDateIssued() {
-        return dateIssued;
-    }
-
-    public void setDateIssued(LocalDateTime dateIssued) {
-        this.dateIssued = dateIssued;
     }
 
     public LocalDateTime getPrescribedAt() {

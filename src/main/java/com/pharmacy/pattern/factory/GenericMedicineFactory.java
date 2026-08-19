@@ -1,5 +1,6 @@
 package com.pharmacy.pattern.factory;
 
+import com.pharmacy.model.GenericMedicine;
 import com.pharmacy.model.Medicine;
 import org.springframework.stereotype.Component;
 
@@ -18,14 +19,13 @@ public class GenericMedicineFactory implements MedicineFactory {
             LocalDate expiryDate,
             Integer lowStockThreshold
     ) {
-        Medicine medicine = new Medicine();
+        Medicine medicine = new GenericMedicine();
         medicine.setName(name);
         medicine.setCategory(category == null || category.isBlank() ? "General" : category);
         medicine.setPrice(price);
         medicine.setStockQty(stockQty);
         medicine.setExpiryDate(expiryDate);
         medicine.setLowStockThreshold(lowStockThreshold);
-        medicine.setMedicineType(Medicine.MedicineType.OTHER);
         return medicine;
     }
 }

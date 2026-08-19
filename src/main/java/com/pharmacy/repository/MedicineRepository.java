@@ -11,7 +11,5 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
 
     List<Medicine> findByStockQtyLessThanEqual(Integer stockQty);
 
-    List<Medicine> findByInventory_InventoryId(Long inventoryId);
-
     boolean existsByName(String name);
 }

@@ -6,7 +6,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "app_suppliers")
-public class Supplier extends User implements SupplierOperations {
+public class Supplier extends User {
 
     @Column
     private Long supplierId;
@@ -20,23 +20,6 @@ public class Supplier extends User implements SupplierOperations {
     @Override
     public String roleName() {
         return "SUPPLIER";
-    }
-
-    @Override
-    public void supplyRestock(Medicine medicine, int qty) {
-        if (medicine != null && qty > 0) {
-            medicine.increaseStock(qty);
-        }
-    }
-
-    @Override
-    public boolean shipmentVerification(long shipmentId) {
-        return shipmentId > 0;
-    }
-
-    @Override
-    public Invoice submitDigitalInvoice() {
-        return new Invoice();
     }
 
     public Long getSupplierId() {

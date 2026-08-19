@@ -41,15 +41,6 @@
             <form method="post" action="/admin/medicine/save" class="two-col">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div>
-                    <label for="addInventoryId">Inventory</label>
-                    <select id="addInventoryId" name="inventoryId" required>
-                        <option th:each="inventory : ${inventories}"
-                                th:value="${inventory.inventoryId}"
-                                th:selected="${inventory.inventoryId != null and inventory.inventoryId.toString() == defaultInventoryId}"
-                                th:text="'Inventory #' + ${inventory.inventoryId} + ' • Qty: ' + ${inventory.quantity}">
-                        </option>
-                    </select>
-
                     <label for="addName">Medicine Name</label>
                     <input id="addName" name="name" required>
 
@@ -87,7 +78,7 @@
         </div>
 
         <div id="edit-medicine-tab" class="tab-panel">
-            <form method="post" action="/admin/medicine/save" class="two-col" id="editMedicineForm">
+            <form method="post" action="/admin/medicine/update" class="two-col" id="editMedicineForm">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" id="editMedicineId" name="medicineId">
                 <div>
@@ -96,26 +87,18 @@
                         <option value="">Choose a medicine</option>
                         <option th:each="medicine : ${medicines}"
                                 th:value="${medicine.medicineId}"
-                                th:data-inventory-id="${medicine.inventory != null ? medicine.inventory.inventoryId : ''}"
                                 th:data-name="${medicine.name}"
                                 th:data-category="${medicine.category}"
                                 th:data-manufacturer="${medicine.manufacturer}"
                                 th:data-price="${medicine.price}"
                                 th:data-stock-qty="${medicine.stockQty}"
-                                th:data-medicine-type="${medicine.medicineType}"
                                 th:data-low-stock-threshold="${medicine.lowStockThreshold}"
                                 th:data-expiry-date="${medicine.expiryDate}"
                                 th:text="'#' + ${medicine.medicineId} + ' • ' + ${medicine.name}">
                         </option>
                     </select>
 
-                    <label for="editInventoryId">Inventory</label>
-                    <select id="editInventoryId" name="inventoryId" required>
-                        <option th:each="inventory : ${inventories}"
-                                th:value="${inventory.inventoryId}"
-                                th:text="'Inventory #' + ${inventory.inventoryId} + ' • Qty: ' + ${inventory.quantity}">
-                        </option>
-                    </select>
+                    <p class="small-note">Medicine type is set at creation and cannot be changed.</p>
 
                     <label for="editName">Medicine Name</label>
                     <input id="editName" name="name" required>
@@ -132,13 +115,6 @@
 
                     <label for="editStockQty">Stock Quantity</label>
                     <input id="editStockQty" name="stockQty" type="number" min="0" required>
-
-                    <label for="editMedicineType">Medicine Type</label>
-                    <select id="editMedicineType" name="medicineType">
-                        <option value="TABLET">Tablet</option>
-                        <option value="SYRUP">Syrup</option>
-                        <option value="OTHER">Other</option>
-                    </select>
 
                     <label for="editLowStockThreshold">Low Stock Threshold</label>
                     <input id="editLowStockThreshold" name="lowStockThreshold" type="number" min="1" required>
@@ -218,7 +194,7 @@
                     <td th:text="${medicine.medicineId}"></td>
                     <td th:text="${medicine.name}"></td>
                     <td th:text="${medicine.category}"></td>
-                    <td th:text="${medicine.medicineType}"></td>
+                    <td th:text="${medicine.getClass().getSimpleName()}"></td>
                     <td th:text="${medicine.manufacturer}"></td>
                     <td th:text="${medicine.price}"></td>
                     <td th:text="${medicine.stockQty}"></td>
@@ -333,13 +309,11 @@
         if (editSelect) {
             const fields = {
                 medicineId: document.getElementById('editMedicineId'),
-                inventoryId: document.getElementById('editInventoryId'),
                 name: document.getElementById('editName'),
                 category: document.getElementById('editCategory'),
                 manufacturer: document.getElementById('editManufacturer'),
                 price: document.getElementById('editPrice'),
                 stockQty: document.getElementById('editStockQty'),
-                medicineType: document.getElementById('editMedicineType'),
                 lowStockThreshold: document.getElementById('editLowStockThreshold'),
                 expiryDate: document.getElementById('editExpiryDate')
             };
@@ -356,13 +330,11 @@
                 }
 
                 fields.medicineId.value = option.value;
-                fields.inventoryId.value = option.dataset.inventoryId || '';
                 fields.name.value = option.dataset.name || '';
                 fields.category.value = option.dataset.category || '';
                 fields.manufacturer.value = option.dataset.manufacturer || '';
                 fields.price.value = option.dataset.price || '';
                 fields.stockQty.value = option.dataset.stockQty || '';
-                fields.medicineType.value = option.dataset.medicineType || 'OTHER';
                 fields.lowStockThreshold.value = option.dataset.lowStockThreshold || '10';
                 fields.expiryDate.value = option.dataset.expiryDate || '';
             });

@@ -18,7 +18,7 @@ public class InventoryAlertSubject {
         if (medicine.isLowStock()) {
             notifyAllObservers(medicine, "Stock quantity is below threshold: " + medicine.getStockQty());
         }
-        if (medicine.isNearExpiry(30)) {
+        if (medicine.isNearExpiry()) {
             notifyAllObservers(medicine, "Medicine is near expiry date: " + medicine.getExpiryDate());
         }
     }

@@ -7,26 +7,19 @@ import com.pharmacy.model.Supplier;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
 
 @Component
 public class BillFactory {
 
-    // Factory Pattern: centralized object construction for billing artifacts.
-    public Bill createBill(Order order, BigDecimal discountPercent) {
-        BigDecimal subtotal = order.calculateSubtotal().setScale(2, RoundingMode.HALF_UP);
-        BigDecimal safePercent = discountPercent == null ? BigDecimal.ZERO : discountPercent;
-        BigDecimal discountAmount = subtotal.multiply(safePercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-
+    // Factory Pattern: pure construction. BillingFacade resolves subtotal/discount/tax/total
+    // via the Strategy + Decorator pipeline before handing them here.
+    public Bill createBill(Order order, BigDecimal subtotal, BigDecimal discountAmount, BigDecimal taxAmount, BigDecimal total) {
         Bill bill = new Bill();
         bill.setOrder(order);
         bill.setSubtotal(subtotal);
-        bill.setTaxAmount(BigDecimal.ZERO);
-        bill.setDiscountApplied(discountAmount);
         bill.setDiscountAmount(discountAmount);
-        bill.setTotal(subtotal.subtract(discountAmount));
+        bill.setTaxAmount(taxAmount);
+        bill.setTotal(total);
         return bill;
     }
 
@@ -35,7 +28,6 @@ public class BillFactory {
         invoice.setSupplier(supplier);
         invoice.setAmount(amount);
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
-        invoice.setInvoiceDate(LocalDateTime.now());
         return invoice;
     }
 }

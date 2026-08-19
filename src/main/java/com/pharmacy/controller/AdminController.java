@@ -2,7 +2,6 @@ package com.pharmacy.controller;
 
 import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Report;
-import com.pharmacy.repository.InventoryRepository;
 import com.pharmacy.service.AdminService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,27 +21,15 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
-    private final InventoryRepository inventoryRepository;
 
-    public AdminController(AdminService adminService, InventoryRepository inventoryRepository) {
+    public AdminController(AdminService adminService) {
         this.adminService = adminService;
-        this.inventoryRepository = inventoryRepository;
     }
 
     @GetMapping("/dashboard/admin")
     public String adminDashboard(Model model) {
         List<Medicine> medicines = adminService.listMedicines();
         model.addAttribute("medicines", medicines);
-        model.addAttribute("inventories", inventoryRepository.findAll());
-        model.addAttribute("defaultInventoryId", medicines.stream()
-                .map(Medicine::getInventory)
-                .filter(inventory -> inventory != null && inventory.getInventoryId() != null)
-                .map(inventory -> inventory.getInventoryId().toString())
-                .findFirst()
-                .orElseGet(() -> inventoryRepository.findAll().stream()
-                        .map(inventory -> inventory.getInventoryId().toString())
-                        .findFirst()
-                        .orElse("")));
         model.addAttribute("invoices", adminService.listInvoices());
         model.addAttribute("alerts", adminService.currentLowStockAlerts());
         model.addAttribute("shipments", adminService.listShipments());
@@ -51,8 +38,6 @@ public class AdminController {
 
     @PostMapping("/admin/medicine/save")
     public String saveMedicine(
-            @RequestParam(value = "medicineId", required = false) Long medicineId,
-            @RequestParam("inventoryId") Long inventoryId,
             @RequestParam("name") String name,
             @RequestParam("category") String category,
             @RequestParam("manufacturer") String manufacturer,
@@ -64,25 +49,35 @@ public class AdminController {
             RedirectAttributes redirectAttributes
     ) {
         try {
-            Medicine medicine = new Medicine();
-            medicine.setMedicineId(medicineId);
-            medicine.setName(name);
-            medicine.setCategory(category);
-            medicine.setManufacturer(manufacturer);
-            medicine.setPrice(price);
-            medicine.setStockQty(stockQty);
-            medicine.setExpiryDate(expiryDate);
-            medicine.setLowStockThreshold(lowStockThreshold);
-            medicine.setMedicineType(parseMedicineType(medicineType));
-
-            adminService.manageMedicineInventory(medicine, inventoryId);
-            redirectAttributes.addFlashAttribute("successMessage", medicineId == null
-                    ? "Medicine added successfully."
-                    : "Medicine updated successfully.");
+            adminService.createMedicine(medicineType, name, category, manufacturer, price, stockQty, expiryDate, lowStockThreshold);
+            redirectAttributes.addFlashAttribute("successMessage", "Medicine added successfully.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         } catch (Exception ex) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Unable to save medicine. Please verify inventory ID and all medicine details.");
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to save medicine. Please verify all medicine details.");
+        }
+        return "redirect:/dashboard/admin";
+    }
+
+    @PostMapping("/admin/medicine/update")
+    public String updateMedicine(
+            @RequestParam("medicineId") Long medicineId,
+            @RequestParam("name") String name,
+            @RequestParam("category") String category,
+            @RequestParam("manufacturer") String manufacturer,
+            @RequestParam("price") BigDecimal price,
+            @RequestParam("stockQty") Integer stockQty,
+            @RequestParam("expiryDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expiryDate,
+            @RequestParam(value = "lowStockThreshold", defaultValue = "10") Integer lowStockThreshold,
+            RedirectAttributes redirectAttributes
+    ) {
+        try {
+            adminService.updateMedicine(medicineId, name, category, manufacturer, price, stockQty, expiryDate, lowStockThreshold);
+            redirectAttributes.addFlashAttribute("successMessage", "Medicine updated successfully.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Unable to update medicine. Please verify all medicine details.");
         }
         return "redirect:/dashboard/admin";
     }
@@ -149,16 +144,5 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
         return "redirect:/dashboard/admin";
-    }
-
-    private Medicine.MedicineType parseMedicineType(String medicineType) {
-        if (medicineType == null || medicineType.isBlank()) {
-            return Medicine.MedicineType.OTHER;
-        }
-        try {
-            return Medicine.MedicineType.valueOf(medicineType.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return Medicine.MedicineType.OTHER;
-        }
     }
 }

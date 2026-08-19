@@ -6,7 +6,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "app_pharmacists")
-public class Pharmacist extends User implements PharmacistOperations {
+public class Pharmacist extends User {
 
     @Column
     private Long employeeId;
@@ -17,26 +17,6 @@ public class Pharmacist extends User implements PharmacistOperations {
     @Override
     public String roleName() {
         return "PHARMACIST";
-    }
-
-    @Override
-    public boolean verifyStock(long medicineId) {
-        return medicineId > 0;
-    }
-
-    @Override
-    public Bill processCustomerBilling(long orderId) {
-        return new Bill();
-    }
-
-    @Override
-    public float applyLoyaltyDiscount(String customerPhone) {
-        return customerPhone == null || customerPhone.isBlank() ? 0.0f : 5.0f;
-    }
-
-    @Override
-    public void updateInventoryStatus(long medicineId, int qty) {
-        // Inventory updates are executed in the service layer.
     }
 
     public Long getEmployeeId() {

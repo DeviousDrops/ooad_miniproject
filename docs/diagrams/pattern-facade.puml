@@ -1,0 +1,44 @@
+@startuml pattern-facade
+skinparam classAttributeIconSize 0
+
+class PharmacistController
+class CustomerController
+
+class BillingFacade {
+  +processCustomerBilling(orderId: Long): Bill
+  +processPayment(billId: Long, method): Payment
+  +verifyStockAvailability(order: Order): boolean
+  +customerBillHistory(customerPhone: String): List<Bill>
+}
+
+package "subsystems fronted by the facade" {
+  interface OrderRepository
+  interface BillRepository
+  interface PaymentRepository
+  interface MedicineRepository
+  class BillFactory
+  class InventoryAlertSubject
+  interface DiscountStrategy
+}
+
+PharmacistController --> BillingFacade : process billing
+CustomerController --> BillingFacade : pay bill,\nview history
+
+BillingFacade --> OrderRepository
+BillingFacade --> BillRepository
+BillingFacade --> PaymentRepository
+BillingFacade --> MedicineRepository
+BillingFacade --> BillFactory
+BillingFacade --> InventoryAlertSubject
+BillingFacade --> "0..*" DiscountStrategy
+
+note right of BillingFacade
+  Facade: one @Transactional entry point hides
+  order-state guards, stock verification, the
+  Strategy+Decorator discount/tax pipeline, stock
+  deduction and Observer notification behind two
+  simple public methods. Controllers never touch
+  the subsystem classes directly.
+end note
+
+@enduml

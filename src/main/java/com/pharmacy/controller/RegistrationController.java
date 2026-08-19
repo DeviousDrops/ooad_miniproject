@@ -2,6 +2,7 @@ package com.pharmacy.controller;
 
 import com.pharmacy.model.Customer;
 import com.pharmacy.repository.CustomerRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -11,9 +12,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class RegistrationController {
 
     private final CustomerRepository customerRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public RegistrationController(CustomerRepository customerRepository) {
+    public RegistrationController(CustomerRepository customerRepository, PasswordEncoder passwordEncoder) {
         this.customerRepository = customerRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/register")
@@ -57,9 +60,10 @@ public class RegistrationController {
             Customer customer = new Customer();
                 customer.setName(safeName);
                 customer.setPhone(safePhone);
+                customer.setUsername(safePhone);
                 customer.setCustomerId(Long.parseLong(safePhone));
                 customer.setEmail(safePhone + "@customer.pharmaflow.com"); // Auto-generating email since it is required and unique
-                customer.setPassword("{noop}" + safePassword);
+                customer.setPassword(passwordEncoder.encode(safePassword));
             customerRepository.save(customer);
 
             redirectAttributes.addFlashAttribute("successMessage", "Registration successful! Please log in.");

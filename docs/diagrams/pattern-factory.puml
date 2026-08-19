@@ -1,0 +1,40 @@
+@startuml pattern-factory
+skinparam classAttributeIconSize 0
+
+abstract class Medicine {
+  +{abstract} nearExpiryWindowDays(): int
+  +{abstract} unitOfSale(): String
+}
+class Tablet extends Medicine
+class Syrup extends Medicine
+class GenericMedicine extends Medicine
+
+interface MedicineFactory {
+  +createMedicine(name, category, price, stockQty, expiryDate, lowStockThreshold): Medicine
+}
+class TabletMedicineFactory
+class SyrupMedicineFactory
+class GenericMedicineFactory
+
+class MedicineFactorySelector {
+  +byType(medicineType: String): MedicineFactory
+}
+
+TabletMedicineFactory ..|> MedicineFactory
+SyrupMedicineFactory ..|> MedicineFactory
+GenericMedicineFactory ..|> MedicineFactory
+
+TabletMedicineFactory ..> Tablet : creates
+SyrupMedicineFactory ..> Syrup : creates
+GenericMedicineFactory ..> GenericMedicine : creates
+
+MedicineFactorySelector --> MedicineFactory : selects by\nmedicine_type
+
+note bottom of MedicineFactorySelector
+  Factory Method: Medicine has no public constructor
+  path outside its subclasses. The discriminator value
+  ("TABLET"/"SYRUP"/"OTHER") picks the concrete factory,
+  which is the only place the concrete subclass is named.
+end note
+
+@enduml

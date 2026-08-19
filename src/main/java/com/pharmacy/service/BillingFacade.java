@@ -6,15 +6,22 @@ import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Order;
 import com.pharmacy.model.OrderItem;
 import com.pharmacy.model.Payment;
+import com.pharmacy.pattern.decorator.BaseBillAmount;
+import com.pharmacy.pattern.decorator.BillAmountComponent;
+import com.pharmacy.pattern.decorator.DiscountDecorator;
+import com.pharmacy.pattern.decorator.TaxDecorator;
+import com.pharmacy.pattern.observer.InventoryAlertSubject;
 import com.pharmacy.repository.BillRepository;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.repository.OrderRepository;
 import com.pharmacy.repository.PaymentRepository;
 import com.pharmacy.service.discount.DiscountStrategy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -26,8 +33,9 @@ public class BillingFacade {
     private final PaymentRepository paymentRepository;
     private final MedicineRepository medicineRepository;
     private final BillFactory billFactory;
-    private final InventoryObserver inventoryObserver;
+    private final InventoryAlertSubject inventoryAlertSubject;
     private final List<DiscountStrategy> discountStrategies;
+    private final BigDecimal taxPercent;
 
     // DIP: collaborators are injected through the constructor, not created internally.
     public BillingFacade(
@@ -36,16 +44,18 @@ public class BillingFacade {
             PaymentRepository paymentRepository,
             MedicineRepository medicineRepository,
             BillFactory billFactory,
-            InventoryObserver inventoryObserver,
-            List<DiscountStrategy> discountStrategies
+            InventoryAlertSubject inventoryAlertSubject,
+            List<DiscountStrategy> discountStrategies,
+            @Value("${pharmacy.tax-percent:5}") BigDecimal taxPercent
     ) {
         this.orderRepository = orderRepository;
         this.billRepository = billRepository;
         this.paymentRepository = paymentRepository;
         this.medicineRepository = medicineRepository;
         this.billFactory = billFactory;
-        this.inventoryObserver = inventoryObserver;
+        this.inventoryAlertSubject = inventoryAlertSubject;
         this.discountStrategies = discountStrategies;
+        this.taxPercent = taxPercent;
     }
 
     // Facade Pattern: this single method orchestrates stock verification, bill generation and inventory updates.
@@ -76,8 +86,19 @@ public class BillingFacade {
             throw new IllegalStateException("Insufficient stock for one or more medicines in this order");
         }
 
-        BigDecimal discount = resolveDiscount(order.getCustomer());
-        Bill bill = billFactory.createBill(order, discount);
+        // Strategy selects the discount percent; Decorator applies discount then tax, in that order.
+        BigDecimal subtotal = order.calculateSubtotal().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal discountPercent = resolveDiscount(order.getCustomer());
+
+        BillAmountComponent afterDiscount = new DiscountDecorator(new BaseBillAmount(subtotal), discountPercent);
+        BillAmountComponent afterTax = new TaxDecorator(afterDiscount, taxPercent);
+
+        BigDecimal discountedSubtotal = afterDiscount.calculateTotal();
+        BigDecimal discountAmount = subtotal.subtract(discountedSubtotal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = afterTax.calculateTotal();
+        BigDecimal taxAmount = total.subtract(discountedSubtotal).setScale(2, RoundingMode.HALF_UP);
+
+        Bill bill = billFactory.createBill(order, subtotal, discountAmount, taxAmount, total);
 
         for (OrderItem item : order.getItems()) {
             Medicine medicine = item.getMedicine();
@@ -86,7 +107,7 @@ public class BillingFacade {
             }
             medicine.reduceStock(item.getQuantity());
             medicineRepository.save(medicine);
-            inventoryObserver.checkLowStock(medicine);
+            inventoryAlertSubject.notifyLowStockOrExpiry(medicine);
         }
 
         order.calculateTotal();

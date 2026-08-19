@@ -2,12 +2,10 @@ package com.pharmacy.service;
 
 import com.pharmacy.model.Invoice;
 import com.pharmacy.model.InvoiceItem;
-import com.pharmacy.model.Inventory;
 import com.pharmacy.model.Medicine;
 import com.pharmacy.model.Shipment;
 import com.pharmacy.model.Supplier;
 import com.pharmacy.repository.InvoiceRepository;
-import com.pharmacy.repository.InventoryRepository;
 import com.pharmacy.repository.MedicineRepository;
 import com.pharmacy.repository.ShipmentRepository;
 import com.pharmacy.repository.SupplierRepository;
@@ -26,7 +24,6 @@ public class SupplierService {
     private final ShipmentRepository shipmentRepository;
     private final InvoiceRepository invoiceRepository;
     private final MedicineRepository medicineRepository;
-    private final InventoryRepository inventoryRepository;
     private final BillFactory billFactory;
     private final AdminService adminService;
 
@@ -35,7 +32,6 @@ public class SupplierService {
             ShipmentRepository shipmentRepository,
             InvoiceRepository invoiceRepository,
             MedicineRepository medicineRepository,
-            InventoryRepository inventoryRepository,
             BillFactory billFactory,
             AdminService adminService
     ) {
@@ -43,7 +39,6 @@ public class SupplierService {
         this.shipmentRepository = shipmentRepository;
         this.invoiceRepository = invoiceRepository;
         this.medicineRepository = medicineRepository;
-        this.inventoryRepository = inventoryRepository;
         this.billFactory = billFactory;
         this.adminService = adminService;
     }
@@ -60,8 +55,6 @@ public class SupplierService {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .or(() -> supplierRepository.findBySupplierId(supplierId))
                 .orElseThrow(() -> new IllegalArgumentException("Supplier not found for ID: " + supplierId));
-        Inventory inventory = inventoryRepository.findAll().stream().findFirst()
-                .orElseGet(() -> inventoryRepository.save(new Inventory()));
 
         BigDecimal totalAmount = BigDecimal.ZERO;
         Invoice invoice = billFactory.createInvoice(supplier, BigDecimal.ZERO);
@@ -89,7 +82,6 @@ public class SupplierService {
 
             Shipment shipment = new Shipment();
             shipment.setSupplier(supplier);
-            shipment.setInventory(inventory);
             shipment.setInvoice(invoice);
             shipment.setMedicine(medicine);
             shipment.setQuantity(quantity);

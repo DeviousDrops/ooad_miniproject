@@ -1,0 +1,50 @@
+@startuml pattern-billing
+skinparam classAttributeIconSize 0
+
+interface DiscountStrategy {
+  +supports(customer: Customer): boolean
+  +discountPercent(customer: Customer): BigDecimal
+}
+class LoyaltyDiscountStrategy
+class DefaultDiscountStrategy
+LoyaltyDiscountStrategy ..|> DiscountStrategy
+DefaultDiscountStrategy ..|> DiscountStrategy
+
+interface BillAmountComponent {
+  +calculateTotal(): BigDecimal
+}
+class BaseBillAmount
+abstract class BillAmountDecorator {
+  #wrapped: BillAmountComponent
+}
+class DiscountDecorator
+class TaxDecorator
+
+BaseBillAmount ..|> BillAmountComponent
+BillAmountDecorator ..|> BillAmountComponent
+BillAmountDecorator o-- BillAmountComponent
+DiscountDecorator extends BillAmountDecorator
+TaxDecorator extends BillAmountDecorator
+
+class BillingFacade {
+  +processCustomerBilling(orderId): Bill
+  -resolveDiscount(customer): BigDecimal
+}
+class BillFactory {
+  +createBill(order, subtotal, discountAmount, taxAmount, total): Bill
+}
+
+BillingFacade --> "0..*" DiscountStrategy : 1. select discount %\n(first-supporting-wins)
+BillingFacade ..> BaseBillAmount : 2. wrap subtotal
+BillingFacade ..> DiscountDecorator : 3. apply discount
+BillingFacade ..> TaxDecorator : 4. apply tax
+BillingFacade --> BillFactory : 5. pure construction
+
+note right of BillingFacade
+  Strategy selects *what* discount percent applies.
+  Decorator applies *how* it's composed into the total:
+  subtotal -> DiscountDecorator -> TaxDecorator.
+  Order is explicit and fixed: discount before tax.
+end note
+
+@enduml

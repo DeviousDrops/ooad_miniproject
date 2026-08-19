@@ -1,0 +1,158 @@
+@startuml class-domain
+skinparam classAttributeIconSize 0
+
+abstract class User {
+  -userId: Long
+  -name: String
+  -username: String
+  -email: String
+  -phone: String
+  -password: String
+  -createdAt: LocalDateTime
+  +roleName(): String
+}
+
+class Admin extends User {
+  -adminLevel: Integer
+}
+class Pharmacist extends User {
+  -employeeId: Long
+  -licenseNumber: String
+}
+class Customer extends User {
+  -customerId: Long
+  -address: String
+  -loyaltyPoints: Integer
+}
+class Supplier extends User {
+  -supplierId: Long
+  -companyName: String
+  -contactInfo: String
+}
+
+abstract class Medicine {
+  -medicineId: Long
+  -name: String
+  -category: String
+  -manufacturer: String
+  -price: BigDecimal
+  -stockQty: Integer
+  -expiryDate: LocalDate
+  -lowStockThreshold: Integer
+  +{abstract} nearExpiryWindowDays(): int
+  +{abstract} unitOfSale(): String
+  +isNearExpiry(): boolean
+  +isLowStock(): boolean
+  +reduceStock(qty: int)
+}
+
+class Tablet extends Medicine {
+  +nearExpiryWindowDays(): int
+  +unitOfSale(): String
+}
+class Syrup extends Medicine {
+  +nearExpiryWindowDays(): int
+  +unitOfSale(): String
+}
+class GenericMedicine extends Medicine {
+  +nearExpiryWindowDays(): int
+  +unitOfSale(): String
+}
+
+class Order {
+  -orderId: Long
+  -orderedAt: LocalDateTime
+  -status: OrderStatus
+  +calculateSubtotal(): BigDecimal
+  +calculateTotal(): BigDecimal
+}
+enum OrderStatus {
+  CREATED
+  BILLED
+  PAID
+  CANCELLED
+  DECLINED
+}
+
+class OrderItem {
+  -orderItemId: Long
+  -quantity: Integer
+  -unitPrice: BigDecimal
+  -lineTotal: BigDecimal
+}
+
+class Bill {
+  -billId: Long
+  -subtotal: BigDecimal
+  -discountAmount: BigDecimal
+  -taxAmount: BigDecimal
+  -total: BigDecimal
+  -generatedAt: LocalDateTime
+}
+
+class Payment {
+  -paymentId: Long
+  -paymentMethod: PaymentMethod
+  -status: PaymentStatus
+  -paidAt: LocalDateTime
+  +processPayment()
+}
+
+class Prescription {
+  -prescriptionId: Long
+  -doctorName: String
+  -dosage: String
+  -prescribedAt: LocalDateTime
+  -notes: String
+  +validatePrescription(): boolean
+}
+
+class Invoice {
+  -invoiceId: Long
+  -invoiceNumber: String
+  -amount: BigDecimal
+  -submittedAt: LocalDateTime
+  -paymentStatus: PaymentStatus
+  -paidAt: LocalDateTime
+}
+
+class InvoiceItem {
+  -invoiceItemId: Long
+  -quantity: Integer
+  -unitPrice: BigDecimal
+  -lineTotal: BigDecimal
+}
+
+class Shipment {
+  -shipmentId: Long
+  -quantity: Integer
+  -expectedDate: LocalDate
+  -deliveredAt: LocalDateTime
+  -status: ShipmentStatus
+}
+
+class Report {
+  -reportId: Long
+  -reportType: ReportType
+  -generatedBy: String
+  -generatedAt: LocalDateTime
+  -summary: String
+}
+
+Customer "1" -- "0..*" Order
+Order "1" *-- "1..*" OrderItem
+OrderItem "0..*" --> "1" Medicine
+Order "1" o-- "0..1" Bill
+Bill "1" o-- "0..1" Payment
+
+Customer "1" -- "0..*" Prescription
+Prescription "0..*" --> "1" Medicine
+
+Supplier "1" -- "0..*" Invoice
+Invoice "1" *-- "0..*" InvoiceItem
+InvoiceItem "0..*" --> "1" Medicine
+Invoice "1" -- "0..*" Shipment
+Shipment "0..*" --> "1" Medicine
+Shipment "0..*" --> "1" Supplier
+
+@enduml

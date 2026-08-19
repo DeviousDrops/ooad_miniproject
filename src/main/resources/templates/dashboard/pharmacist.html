@@ -105,6 +105,7 @@
                 <thead>
                 <tr>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Items</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Ordered At</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total Amount</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Status</th>
@@ -114,6 +115,10 @@
                 <tbody>
                 <tr th:each="order : ${unprocessedOrders}">
                     <td style="padding:8px;" th:text="${order.orderId}"></td>
+                    <td style="padding:8px;">
+                        <div th:each="item : ${order.items}"
+                             th:text="${item.medicine.name + ' x' + item.quantity + ' ' + item.medicine.unitOfSale()}"></div>
+                    </td>
                     <td style="padding:8px;" th:text="${order.orderedAt}"></td>
                     <td style="padding:8px;" th:text="${order.totalAmount}"></td>
                     <td style="padding:8px;" th:text="${order.status}"></td>
@@ -133,7 +138,7 @@
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(unprocessedOrders)}">
-                    <td style="padding:8px;" colspan="5">No unprocessed orders available.</td>
+                    <td style="padding:8px;" colspan="6">No unprocessed orders available.</td>
                 </tr>
                 </tbody>
             </table>
@@ -149,6 +154,9 @@
                 <tr>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Bill ID</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Subtotal</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Discount</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Tax</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Generated At</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Payment Status</th>
@@ -158,12 +166,15 @@
                 <tr th:each="bill : ${processedBills}">
                     <td style="padding:8px;" th:text="${bill.billId}"></td>
                     <td style="padding:8px;" th:text="${bill.order != null ? bill.order.orderId : '-'}"></td>
+                    <td style="padding:8px;" th:text="${bill.subtotal}"></td>
+                    <td style="padding:8px;" th:text="${bill.discountAmount}"></td>
+                    <td style="padding:8px;" th:text="${bill.taxAmount}"></td>
                     <td style="padding:8px;" th:text="${bill.total}"></td>
                     <td style="padding:8px;" th:text="${bill.generatedAt}"></td>
                     <td style="padding:8px;" th:text="${bill.payment != null ? bill.payment.status : 'UNPAID'}"></td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(processedBills)}">
-                    <td style="padding:8px;" colspan="5">No processed bills yet.</td>
+                    <td style="padding:8px;" colspan="8">No processed bills yet.</td>
                 </tr>
                 </tbody>
             </table>

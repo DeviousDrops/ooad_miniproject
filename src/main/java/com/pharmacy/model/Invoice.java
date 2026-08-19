@@ -51,9 +51,6 @@ public class Invoice {
     @Column(nullable = false)
     private LocalDateTime submittedAt;
 
-    @Column(nullable = false)
-    private LocalDateTime invoiceDate;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private PaymentStatus paymentStatus;
@@ -63,7 +60,6 @@ public class Invoice {
     @PrePersist
     void onCreate() {
         submittedAt = LocalDateTime.now();
-        invoiceDate = submittedAt;
         if (paymentStatus == null) {
             paymentStatus = PaymentStatus.PENDING;
         }
@@ -110,14 +106,6 @@ public class Invoice {
 
     public LocalDateTime getSubmittedAt() {
         return submittedAt;
-    }
-
-    public LocalDateTime getInvoiceDate() {
-        return invoiceDate;
-    }
-
-    public void setInvoiceDate(LocalDateTime invoiceDate) {
-        this.invoiceDate = invoiceDate;
     }
 
     public PaymentStatus getPaymentStatus() {

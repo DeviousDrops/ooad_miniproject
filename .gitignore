@@ -7,3 +7,6 @@
 *.iml
 .DS_Store
 Thumbs.db
+
+# Local H2 database files
+/data/

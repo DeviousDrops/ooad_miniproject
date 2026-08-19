@@ -28,9 +28,6 @@ public class Report {
     @Column(nullable = false)
     private String generatedBy;
 
-    @Column
-    private String type;
-
     @Column(nullable = false)
     private LocalDateTime generatedAt;
 
@@ -45,9 +42,6 @@ public class Report {
     @PrePersist
     void onCreate() {
         generatedAt = LocalDateTime.now();
-        if (type == null && reportType != null) {
-            type = reportType.name();
-        }
         if (summary == null) {
             summary = "";
         }
@@ -75,9 +69,6 @@ public class Report {
 
     public void setReportType(ReportType reportType) {
         this.reportType = reportType;
-        if (reportType != null) {
-            this.type = reportType.name();
-        }
     }
 
     public String getGeneratedBy() {
@@ -86,14 +77,6 @@ public class Report {
 
     public void setGeneratedBy(String generatedBy) {
         this.generatedBy = generatedBy;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
     }
 
     public LocalDateTime getGeneratedAt() {

@@ -172,6 +172,9 @@
                 <tr>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Bill ID</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order ID</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Subtotal</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Discount</th>
+                    <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Tax</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Total</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Order Status</th>
                     <th style="text-align:left; padding:8px; border-bottom:1px solid #d6e6e2;">Payment Status</th>
@@ -181,12 +184,15 @@
                 <tr th:each="bill : ${bills}">
                     <td style="padding:8px;" th:text="${bill.billId}"></td>
                     <td style="padding:8px;" th:text="${bill.order != null ? bill.order.orderId : '-'}"></td>
+                    <td style="padding:8px;" th:text="${bill.subtotal}"></td>
+                    <td style="padding:8px;" th:text="${bill.discountAmount}"></td>
+                    <td style="padding:8px;" th:text="${bill.taxAmount}"></td>
                     <td style="padding:8px;" th:text="${bill.total}"></td>
                     <td style="padding:8px;" th:text="${bill.order != null ? bill.order.status : '-'}"></td>
                     <td style="padding:8px;" th:text="${bill.payment != null ? bill.payment.status : 'UNPAID'}"></td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(bills)}">
-                    <td style="padding:8px;" colspan="5">No bills yet. After pharmacist processes billing, records will appear here.</td>
+                    <td style="padding:8px;" colspan="8">No bills yet. After pharmacist processes billing, records will appear here.</td>
                 </tr>
                 </tbody>
             </table>

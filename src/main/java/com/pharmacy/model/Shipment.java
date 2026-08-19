@@ -31,11 +31,6 @@ public class Shipment {
     private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "inventory_id", nullable = false)
-    @JsonIgnore
-    private Inventory inventory;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medicine_id", nullable = false)
     private Medicine medicine;
 
@@ -93,14 +88,6 @@ public class Shipment {
 
     public void setSupplier(Supplier supplier) {
         this.supplier = supplier;
-    }
-
-    public Inventory getInventory() {
-        return inventory;
-    }
-
-    public void setInventory(Inventory inventory) {
-        this.inventory = inventory;
     }
 
     public Medicine getMedicine() {

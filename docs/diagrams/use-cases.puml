@@ -1,0 +1,69 @@
+@startuml use-cases
+left to right direction
+skinparam packageStyle rectangle
+
+actor Admin
+actor Pharmacist
+actor Customer
+actor Supplier
+actor Scheduler <<system>>
+
+rectangle "Pharmacy Billing System" {
+  usecase "Register Account" as UC_Register
+  usecase "Log In" as UC_Login
+
+  usecase "Create Medicine" as UC_CreateMedicine
+  usecase "Edit Medicine" as UC_EditMedicine
+  usecase "Delete Medicine" as UC_DeleteMedicine
+  usecase "Generate Sales Report" as UC_SalesReport
+  usecase "Generate Inventory Report" as UC_InventoryReport
+  usecase "Approve / Decline Bill" as UC_ApproveBill
+
+  usecase "Verify Stock" as UC_VerifyStock
+  usecase "Process Billing" as UC_ProcessBilling
+  usecase "Decline Order" as UC_DeclineOrder
+  usecase "Adjust Stock Manually" as UC_AdjustStock
+
+  usecase "Place Order" as UC_PlaceOrder
+  usecase "Pay Bill" as UC_PayBill
+  usecase "Cancel Order" as UC_CancelOrder
+  usecase "View Bill History" as UC_BillHistory
+
+  usecase "Submit Invoice" as UC_SubmitInvoice
+  usecase "Update Shipment Status" as UC_UpdateShipment
+  usecase "Cancel Invoice" as UC_CancelInvoice
+
+  usecase "Auto-Restock Low Stock" as UC_AutoRestock
+}
+
+Customer --> UC_Register
+Customer --> UC_Login
+Admin --> UC_Login
+Pharmacist --> UC_Login
+Supplier --> UC_Login
+
+Admin --> UC_CreateMedicine
+Admin --> UC_EditMedicine
+Admin --> UC_DeleteMedicine
+Admin --> UC_SalesReport
+Admin --> UC_InventoryReport
+Admin --> UC_ApproveBill
+
+Pharmacist --> UC_VerifyStock
+Pharmacist --> UC_ProcessBilling
+Pharmacist --> UC_DeclineOrder
+Pharmacist --> UC_AdjustStock
+UC_ProcessBilling ..> UC_VerifyStock : <<include>>
+
+Customer --> UC_PlaceOrder
+Customer --> UC_PayBill
+Customer --> UC_CancelOrder
+Customer --> UC_BillHistory
+
+Supplier --> UC_SubmitInvoice
+Supplier --> UC_UpdateShipment
+Supplier --> UC_CancelInvoice
+
+Scheduler --> UC_AutoRestock
+
+@enduml

@@ -10,7 +10,6 @@ import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 
 import java.time.LocalDateTime;
 
@@ -28,6 +27,9 @@ public abstract class User {
     private String name;
 
     @Column(nullable = false, unique = true)
+    private String username;
+
+    @Column(nullable = false, unique = true)
     private String email;
 
     @Column(nullable = false, unique = true, length = 10)
@@ -39,25 +41,12 @@ public abstract class User {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Transient
-    private boolean activeSession;
-
     @PrePersist
     void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
     public abstract String roleName();
-
-    // LSP: all user subtypes share a common behavioral contract.
-    public boolean login() {
-        activeSession = password != null && !password.isBlank();
-        return activeSession;
-    }
-
-    public void logout() {
-        activeSession = false;
-    }
 
     public void updateProfile() {
         // Profile mutation is handled by dedicated application services.
@@ -77,6 +66,14 @@ public abstract class User {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getEmail() {
@@ -105,9 +102,5 @@ public abstract class User {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public boolean isActiveSession() {
-        return activeSession;
     }
 }

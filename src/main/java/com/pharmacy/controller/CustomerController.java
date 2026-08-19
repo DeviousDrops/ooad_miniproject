@@ -86,8 +86,9 @@ public class CustomerController {
             Authentication authentication,
             RedirectAttributes redirectAttributes
     ) {
+        String customerPhone = currentCustomerPhone(authentication);
         try {
-            customerService.makePayment(billId, paymentMethod);
+            customerService.makePayment(customerPhone, billId, paymentMethod);
             redirectAttributes.addFlashAttribute("successMessage", "Payment processed successfully.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());

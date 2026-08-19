@@ -10,7 +10,8 @@ app is the only presentation surface.
 - Business layer: `com.pharmacy.service` (actor services, `BillingFacade`, `BillFactory`),
   `com.pharmacy.service.discount` (Strategy), `com.pharmacy.pattern.*` (Factory, Decorator,
   Observer)
-- Data layer: `com.pharmacy.model` (JPA entities), `com.pharmacy.repository` (Spring Data)
+- Data layer: `com.pharmacy.model` (JPA entities), `com.pharmacy.repository` (Spring Data),
+  `src/main/resources/db/migration` (Flyway schema migrations)
 
 Runtime flow:
 
@@ -52,6 +53,10 @@ cannot change afterward — the admin edit form only edits shared fields.
 `Order` owns `OrderItem` lines and computes its own subtotal/total (Information Expert). `Bill`
 holds `subtotal`/`discountAmount`/`taxAmount`/`total`, one per `Order`. `Payment` is one-to-one
 with `Bill`.
+
+`OrderItem` snapshots `unitPrice` and `lineTotal` at order time rather than reading through to
+`Medicine.price`. A later price change therefore does not retroactively alter historical orders
+or bills — the order records what the customer was actually quoted.
 
 ### 2.4 Procurement model
 
@@ -126,7 +131,67 @@ Kept brief — these follow from the structure above rather than being separatel
   (`List<DiscountStrategy>`, `List<InventoryObserver>`, repository interfaces), never on
   concretions it constructs itself.
 
-## 5. Historical note
+## 5. Data integrity and concurrency
+
+### 5.1 Money representation
+
+All monetary fields (`Medicine.price`, `OrderItem.unitPrice`/`lineTotal`, `Order.totalAmount`,
+`Bill.*`, `Payment.amount`, `Invoice`/`InvoiceItem` amounts) are `BigDecimal` mapped to
+`numeric(12,2)` — never `double`, which cannot represent decimal currency values exactly.
+
+Rounding is explicit and consistent: each decorator in the billing chain rounds to scale 2 with
+`RoundingMode.HALF_UP`. `BillingFacade` derives the tax component by *subtraction*
+(`total - discountedSubtotal`) rather than recomputing it independently, so the stored
+`subtotal`/`discountAmount`/`taxAmount`/`total` always reconcile exactly with no rounding drift
+between the components and the sum.
+
+### 5.2 Stock concurrency
+
+`Medicine` carries a JPA `@Version` field, so every stock write becomes
+`UPDATE ... WHERE medicine_id = ? AND version = ?` under optimistic locking.
+
+This closes a check-then-act race in `BillingFacade.processCustomerBilling`: stock is validated
+by `verifyStockAvailability` and decremented a few lines later. Without versioning, two
+pharmacists billing the last unit concurrently would both read `stockQty = 1`, both pass the
+check, and both decrement — overselling silently, because `Medicine.reduceStock` clamps at zero
+rather than failing. With `@Version`, the second transaction's flush fails; `BillingFacade`
+catches `OptimisticLockingFailureException` and rethrows it as an `IllegalStateException`
+("stock changed, please retry"), which `GlobalExceptionHandler` renders as a normal user-facing
+error. Losing the race is the correct outcome here — the operator re-checks availability rather
+than the system silently overselling.
+
+Double-billing a single order is prevented separately and structurally: `app_bills.order_id`
+carries a unique constraint, so a duplicate bill fails at the database level even if two
+transactions both pass the in-transaction status check.
+
+### 5.3 Authorization
+
+Role-level access is enforced by `SecurityConfig` path matchers plus `@PreAuthorize` on
+controllers. Beyond that, operations that act on a specific record verify **ownership**, not just
+role: `CustomerService.cancelOrder` and `CustomerService.makePayment` both confirm the target
+record belongs to the authenticated customer before proceeding. Without this an authenticated
+customer could settle another customer's bill by supplying its ID (an IDOR) — role checks alone
+do not prevent horizontal privilege escalation between users of the *same* role.
+
+The H2 console is restricted to `ROLE_ADMIN`. Its CSRF exemption and same-origin frame allowance
+exist only so that console can function, and apply to no other path.
+
+### 5.4 Schema management
+
+Flyway owns the schema. `src/main/resources/db/migration/V1__init.sql` is the baseline, and
+`spring.jpa.hibernate.ddl-auto=validate` means Hibernate only *verifies* that the entity mappings
+match the migrated schema — it never alters it. A mismatch fails startup loudly instead of being
+silently patched, and schema changes become reviewable, versioned, and replayable in order.
+
+The baseline was reverse-engineered from the previous `ddl-auto=update` schema (exported via
+`jakarta.persistence.schema-generation`) and then cleaned up to give the foreign keys readable
+names, rather than being authored schema-first.
+
+Tests run against a throwaway in-memory H2 database (`src/test/resources/application.properties`)
+using the same Flyway + `validate` path as production, so they exercise the real schema and
+cannot mutate or leak state into the local `./data/pharmacydb` dev database.
+
+## 6. Historical note
 
 An earlier draft of this project split ownership four ways (one actor + one pattern per
 teammate) for a graded submission. This is now a personal project with a single owner, so that

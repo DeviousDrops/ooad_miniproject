@@ -131,7 +131,18 @@ public class CustomerService {
     }
 
     @Transactional
-    public Payment makePayment(Long billId, Payment.PaymentMethod method) {
+    public Payment makePayment(String customerPhone, Long billId, Payment.PaymentMethod method) {
+        if (billId == null || billId <= 0) {
+            throw new IllegalArgumentException("Invalid bill ID");
+        }
+
+        Customer customer = resolveCustomer(customerPhone);
+        boolean ownsBill = billingFacade.customerBillHistory(customer.getPhone()).stream()
+                .anyMatch(bill -> billId.equals(bill.getBillId()));
+        if (!ownsBill) {
+            throw new IllegalStateException("You can only pay your own bills");
+        }
+
         return billingFacade.processPayment(billId, method);
     }
 

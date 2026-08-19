@@ -55,10 +55,42 @@ class BillingGuardsTest {
         assertEquals(Order.OrderStatus.BILLED, orderRepository.findById(order.getOrderId()).orElseThrow().getStatus());
 
         customerService.makePayment(
+                customerPhone,
                 orderRepository.findById(order.getOrderId()).orElseThrow().getBill().getBillId(),
                 com.pharmacy.model.Payment.PaymentMethod.CASH
         );
         assertEquals(Order.OrderStatus.PAID, orderRepository.findById(order.getOrderId()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void payingAnotherCustomersBillThrows() {
+        String owner = customerRepository.findAll().get(0).getPhone();
+        String otherCustomer = createCustomer("9000000099").getPhone();
+        Medicine medicine = medicineRepository.findAll().get(0);
+
+        Order order = customerService.placeOrder(
+                owner,
+                List.of(new CustomerService.OrderRequestItem(medicine.getMedicineId(), 1))
+        );
+        pharmacistService.processCustomerBilling(order.getOrderId());
+        Long billId = orderRepository.findById(order.getOrderId()).orElseThrow().getBill().getBillId();
+
+        assertThrows(IllegalStateException.class, () -> customerService.makePayment(
+                otherCustomer,
+                billId,
+                com.pharmacy.model.Payment.PaymentMethod.CASH
+        ));
+    }
+
+    private Customer createCustomer(String phone) {
+        Customer customer = new Customer();
+        customer.setName("Other Customer " + phone);
+        customer.setEmail(phone + "@customer.test.local");
+        customer.setPhone(phone);
+        customer.setUsername(phone);
+        customer.setPassword("irrelevant");
+        customer.setCustomerId(Long.valueOf(phone));
+        return customerRepository.save(customer);
     }
 
     @Test

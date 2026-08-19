@@ -11,6 +11,7 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,6 +26,9 @@ public abstract class Medicine {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long medicineId;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false, unique = true)
     private String name;

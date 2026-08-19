@@ -10,6 +10,7 @@ for PlantUML use-case, class, and per-pattern diagrams.
 - Spring Boot 3.5
 - Spring MVC + Thymeleaf
 - Spring Data JPA + Spring Security (BCrypt, DB-backed)
+- Flyway (versioned schema migrations)
 - H2 file-based database
 
 ## Functional Scope
@@ -32,6 +33,7 @@ for PlantUML use-case, class, and per-pattern diagrams.
 - Discount strategies: `src/main/java/com/pharmacy/service/discount`
 - Pattern implementations: `src/main/java/com/pharmacy/pattern` (`factory`, `decorator`, `observer`)
 - Repositories: `src/main/java/com/pharmacy/repository`
+- Schema migrations: `src/main/resources/db/migration`
 - Startup seeding: `src/main/java/com/pharmacy/bootstrap`
 - Architecture diagrams: `docs/diagrams`
 
@@ -52,13 +54,28 @@ Details and rationale for each: [`DESIGN.md`](DESIGN.md) §3.
 mvn spring-boot:run
 ```
 
-The H2 database (`data/pharmacydb.mv.db`) is not committed — it's reseeded from scratch by
-`DataInitializer` on every startup with 12 medicines across the three subclasses and 4 users.
+The H2 database (`data/pharmacydb.mv.db`) is not committed. Flyway creates the schema from
+`db/migration` on first startup, then `DataInitializer` seeds 12 medicines across the three
+subclasses and 4 users if the tables are empty.
+
+Schema changes go in a new `db/migration/V<n>__<description>.sql` file — never by editing an
+applied migration, and never by letting Hibernate alter the schema
+(`ddl-auto` is `validate`, so a mismatch between entities and migrations fails startup).
+
+## Running Tests
+
+```bash
+mvn test
+```
+
+Tests run against a throwaway in-memory H2 database using the same Flyway migrations as
+production, so they never touch `data/pharmacydb`.
 
 ## Application URLs
 - Home: `http://localhost:8080/`
 - Login: `http://localhost:8080/login`
-- H2 Console: `http://localhost:8080/h2-console` (JDBC URL `jdbc:h2:file:./data/pharmacydb`, user `sa`, no password)
+- H2 Console: `http://localhost:8080/h2-console` — **requires an admin login**
+  (JDBC URL `jdbc:h2:file:./data/pharmacydb`, user `sa`, no password)
 
 ## Default Logins
 | Role | Username | Password |
@@ -73,3 +90,13 @@ Customers can also self-register with any 10-digit phone number, which becomes t
 ## Configuration
 - `pharmacy.tax-percent` (`application.properties`, default `5`) — tax percent applied after
   discount in the billing decorator chain.
+
+## Correctness Notes
+- **Money** is `BigDecimal`/`numeric(12,2)` throughout, rounded `HALF_UP` at scale 2. Order lines
+  snapshot the unit price, so later price edits don't rewrite historical bills.
+- **Stock** is guarded by JPA optimistic locking (`@Version` on `Medicine`), so two pharmacists
+  billing the last unit concurrently can't oversell — the loser gets a retry error.
+- **Ownership** is checked on record-level customer actions (pay, cancel), not just role, so one
+  customer can't act on another's bills or orders.
+
+See [`DESIGN.md`](DESIGN.md) §5 for the reasoning behind each.

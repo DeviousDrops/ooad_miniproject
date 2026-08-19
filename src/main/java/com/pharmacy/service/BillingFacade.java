@@ -17,6 +17,7 @@ import com.pharmacy.repository.OrderRepository;
 import com.pharmacy.repository.PaymentRepository;
 import com.pharmacy.service.discount.DiscountStrategy;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,7 +107,13 @@ public class BillingFacade {
                 throw new IllegalStateException("Order item references a null medicine");
             }
             medicine.reduceStock(item.getQuantity());
-            medicineRepository.save(medicine);
+            try {
+                medicineRepository.saveAndFlush(medicine);
+            } catch (OptimisticLockingFailureException e) {
+                // Another billing transaction updated this medicine's stock first; fail loud instead of overselling.
+                throw new IllegalStateException(
+                        "Stock for " + medicine.getName() + " changed while billing; please retry", e);
+            }
             inventoryAlertSubject.notifyLowStockOrExpiry(medicine);
         }
 

@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/", "/login", "/register", "/css/**").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/h2-console/**").hasRole("ADMIN")
                         .requestMatchers("/dashboard/admin", "/admin/**").hasRole("ADMIN")
                         .requestMatchers("/dashboard/pharmacist", "/pharmacist/**").hasRole("PHARMACIST")
                         .requestMatchers("/dashboard/customer", "/customer/**").hasRole("CUSTOMER")
